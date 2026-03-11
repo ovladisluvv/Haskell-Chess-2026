@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Board
+      Events
       Lib
       Moves
       Render

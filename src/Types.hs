@@ -35,5 +35,6 @@ data Move = Move { moveFrom :: Pos,
 -- Состояние игры. Включает текущую позицию на доске, активного игрока и номер хода
 data GameState = GameState { board :: Board,
                              activePlayer :: Color,
-                             moveNumber :: Int -- Номер хода увеличивается после хода черных
+                             moveNumber :: Int, -- Номер хода увеличивается после хода черных
+                             selectedPos :: Maybe Pos -- Позиция выбранной фигуры для хода, если есть
                            } deriving (Show, Eq)

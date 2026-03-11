@@ -3,11 +3,10 @@ module Lib
     ) where
 
 import Graphics.Gloss 
-import Graphics.Gloss.Interface.Pure.Game
-
 import Board (initGameState)
 import Types (GameState)
 import Render (windowSize, drawGame)
+import Events (handleEvent)
 
 -- \\-- Главная функция запуска приложения
 -- Окно приложения
@@ -21,10 +20,6 @@ bgColor = makeColorI 50 50 50 255
 -- Количество обновлений экрана в секунду
 fps :: Int
 fps = 30
-
--- Обработка событий (пока заглушка)
-event :: Event -> GameState -> GameState
-event _ state = state
 
 -- Шаг по времени (не нужен без таймера)
 update :: Float -> GameState -> GameState
@@ -54,4 +49,4 @@ run :: IO ()
 run = do
     images <- loadImages
     let draw state = drawGame images state
-    play window bgColor fps initGameState draw event update
+    play window bgColor fps initGameState draw handleEvent update
