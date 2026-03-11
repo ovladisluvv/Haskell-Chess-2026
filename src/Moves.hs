@@ -31,7 +31,8 @@ queenDirs = rookDirs ++ bishopDirs
 -- /--- Библиотека генерации ходов
 -- Генерация ходов для Коня и Короля. Применяет фиксированные смещения с проверкой валидности хода
 stepMoves :: Board -> Pos -> Color -> [(Int, Int)] -> [Pos]
-stepMoves b pos color offsets = filter (isValidPos piecePos && notOwnPiece piecePos) (map nextPos offsets)
+-- stepMoves b pos color offsets = filter (isValidPos piecePos && notOwnPiece piecePos) (map nextPos offsets) !!!!!!!!!!!!!!!!!!!!!
+stepMoves b pos color offsets = filter (\piecePos -> isValidPos piecePos && notOwnPiece piecePos) (map nextPos offsets)
     where
         notOwnPiece piecePos = case (getPiece b piecePos) of
             Nothing -> True
@@ -52,7 +53,8 @@ slideMoves b pos color dirs = concatMap (slide pos) dirs
 
 -- Генерация ходов для пешек. Учитывает направление движения, начальную позицию для двойного шага и возможность взятия по диагонали
 pawnMoves :: Board -> Pos -> Color -> [Pos]
-pawnMoves b (Pos f r) color = forwardMoves ++ filter (isValidPos piecePos && hasOpponentPiece piecePos) [Pos (f - 1) (r + dir), Pos (f + 1) (r + dir)]
+-- pawnMoves b (Pos f r) color = forwardMoves ++ filter (isValidPos piecePos && hasOpponentPiece piecePos) [Pos (f - 1) (r + dir), Pos (f + 1) (r + dir)] !!!!!!!!!!!
+pawnMoves b (Pos f r) color = forwardMoves ++ filter (\piecePos -> isValidPos piecePos && hasOpponentPiece piecePos) [Pos (f - 1) (r + dir), Pos (f + 1) (r + dir)]
     where
         (dir, startRank) = case color of
             White -> (1, 1)

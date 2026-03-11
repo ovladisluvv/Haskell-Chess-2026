@@ -1,14 +1,16 @@
 module Render
     ( windowSize
     , drawGame
+    , squareSize
     ) where
 
 import Graphics.Gloss
 import Data.Maybe (fromMaybe)
 
-import Types (Piece(..), PieceType(..), GameState(..), Board, Pos(..))
+import Types (Piece(..), PieceType(..), GameState(..), Board, Pos(..), Move(..))
 import qualified Types as T
-import Board (getPiece)                             
+import Board (getPiece)    
+import Rules (allLegalMoves)                         
 
 -- \\-- Константы для рендеринга
 -- Размер одной клетки в пикселях
@@ -38,7 +40,7 @@ toScreenY r = fromIntegral r * squareSize - fromIntegral windowSize / 2 + square
 
 -- \\-- Главная функция, собирает всю сцену
 drawGame :: [(String, Picture)] -> GameState -> Picture
-drawGame imgs state = Pictures [drawBoard, drawPieces imgs (board state), drawLabels]
+drawGame imgs state = Pictures [drawBoard, drawHighlights state, drawPieces imgs (board state), drawLabels]
 
 -- Рисует 64 клетки шахматной доски
 drawBoard :: Picture
@@ -100,5 +102,18 @@ drawLabels = Pictures (fileLbls ++ rankLbls)
                | r <- [0..7]]
 
     fileChar f = toEnum (fromEnum 'a' + f)
+
+-- Рисует рамки возможных ходов для выбранной фигуры
+drawHighlights :: GameState -> Picture
+drawHighlights state = case selectedPos state of
+    Nothing -> Blank
+    Just selPos -> 
+        let legalMoves = [moveTo m | m <- allLegalMoves state, moveFrom m == selPos]
+        in Pictures [drawHighlight pos | pos <- legalMoves]
+  where
+    drawHighlight (Pos f r) = 
+        Translate (toScreenX f) (toScreenY r) $
+        Color (makeColorI 100 100 100 200) $
+        ThickCircle (squareSize / 2 - 5) 5 -- Серая рамка-круг внутри клетки
 
 -- \-- 
