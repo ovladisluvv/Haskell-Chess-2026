@@ -28,6 +28,8 @@ library
       Board
       Lib
       Moves
+      Render
+      Rules
       Types
   other-modules:
       Paths_chess
