@@ -78,5 +78,5 @@ initGameState :: GameState
 initGameState = GameState { board = initBoard, -- не b, а board
                             activePlayer = White,
                             moveNumber = 1,
-                            selectedPos = Nothing}
+                            selectedPos = Nothing }
 -- \---
