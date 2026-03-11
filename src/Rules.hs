@@ -9,7 +9,7 @@ import Moves (allPossibleMoves)
 applyMove :: GameState -> Move -> GameState
 applyMove gs move = gs { board = newBoard,
                          activePlayer = oppositeColor (activePlayer gs),
-                         moveNumber = (moveNumber gs) + turnInc (activePlayer gs)
+                         moveNumber = moveNumber gs + turnInc (activePlayer gs)
                        }
     where
         newBoard = movePiece (board gs) (moveFrom move) (moveTo move)
@@ -21,7 +21,7 @@ applyMove gs move = gs { board = newBoard,
 findKing :: Board -> Color -> Pos
 findKing b color = head (filter isKing [Pos f r | f <- [0..7], r <- [0..7]])
     where
-        isKing piecePos = case (getPiece b piecePos) of
+        isKing piecePos = case getPiece b piecePos of
             Just (Piece King pieceColor) -> pieceColor == color
             _ -> False
 
@@ -45,11 +45,11 @@ allLegalMoves gs = filter (isMoveLegal gs) (allPossibleMoves gs)
 
 -- Проверка на мат
 isCheckmate :: GameState -> Bool
-isCheckmate gs = (null (allLegalMoves gs)) && (isCheck gs (activePlayer gs))
+isCheckmate gs = null (allLegalMoves gs) && isCheck gs (activePlayer gs)
 
 -- Проверка на пат
 isStalemate :: GameState -> Bool
-isStalemate gs = (null (allLegalMoves gs)) && (not (isCheck gs (activePlayer gs)))
+isStalemate gs = null (allLegalMoves gs) && not (isCheck gs (activePlayer gs))
 
 -- ToDo : Реализовать проверку на ничью по правилу 50 ходов
 -- ToDo : Реализовать проверку на ничью по повторению позиции

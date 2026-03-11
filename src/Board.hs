@@ -3,6 +3,7 @@ module Board where
 import Types
 import Data.Vector (Vector)
 import qualified Data.Vector as V
+import Control.Monad.Select (MonadSelect(select))
 
 -- /--- Библиотека для работы с позицией на шахматной доске
 -- Проверка, находится ли позиция в пределах доски (0-7 для столбца и 0-7 для ряда)
@@ -75,7 +76,8 @@ initBoard = V.generate 64 initSquare
 
 -- Инициализация состояния игры
 initGameState :: GameState
-initGameState = GameState { b = initBoard,
+initGameState = GameState { board = initBoard,
                             activePlayer = White,
-                            moveNumber = 1 }
+                            moveNumber = 1,
+                            selectedPos = Nothing }
 -- \---
