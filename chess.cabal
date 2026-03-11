@@ -27,6 +27,7 @@ library
   exposed-modules:
       Board
       Lib
+      Moves
       Types
   other-modules:
       Paths_chess

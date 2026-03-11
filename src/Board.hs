@@ -28,14 +28,14 @@ getPiece b pos
 
 -- Установка содержимого клетки (фигуры или пустоты). Если позиция недействительна, возвращает неизмененную доску
 setPiece :: Board -> Pos -> Maybe Piece -> Board
-setPiece b pos p
-    | isValidPos pos = b V.// [(ind, p)]
+setPiece b pos piece
+    | isValidPos pos = b V.// [(ind, piece)]
     | otherwise = b
     where ind = posToInd pos
 
 -- Вспомогательная функция: поставить фигуру
 placePiece :: Board -> Pos -> Piece -> Board
-placePiece b pos p = setPiece b pos (Just p)
+placePiece b pos piece = setPiece b pos (Just piece)
 
 -- Вспомогательная функция: убрать фигуру
 removePiece :: Board -> Pos -> Board
@@ -43,9 +43,8 @@ removePiece b pos = setPiece b pos Nothing
 
 -- Перемещение фигуры на доске с posFrom на posTo. Клетка posFrom становится пустой
 movePiece :: Board -> Pos -> Pos -> Board
-movePiece b posFrom posTo = setPiece boardWithoutPiece posTo p
-    where p = getPiece b posFrom
-          boardWithoutPiece = setPiece b posFrom Nothing        
+movePiece b posFrom posTo = setPiece boardWithoutPiece posTo (getPiece b posFrom)
+    where boardWithoutPiece = setPiece b posFrom Nothing        
 -- \---
 
 -- /--- Библиотека для инициализации игры
@@ -57,13 +56,13 @@ emptyBoard = V.replicate 64 Nothing
 initBoard :: Board
 initBoard = V.generate 64 initSquare
     where
-        initSquare ind = case rank of
+        initSquare ind = case r of
             1 -> Just (Piece Pawn White) -- 2-я горизонталь (белые пешки)
             6 -> Just (Piece Pawn Black) -- 7-я горизонталь (черные пешки)
-            0 -> Just (Piece (backRank file) White) -- 1-я горизонталь (белые фигуры)
-            7 -> Just (Piece (backRank file) Black) -- 8-я горизонталь (черные фигуры)
+            0 -> Just (Piece (backRank f) White) -- 1-я горизонталь (белые фигуры)
+            7 -> Just (Piece (backRank f) Black) -- 8-я горизонталь (черные фигуры)
             _ -> Nothing
-            where Pos file rank = indToPos ind
+            where Pos f r = indToPos ind
 
         backRank 0 = Rook
         backRank 1 = Knight
@@ -76,7 +75,7 @@ initBoard = V.generate 64 initSquare
 
 -- Инициализация состояния игры
 initGameState :: GameState
-initGameState = GameState { board = initBoard,
+initGameState = GameState { b = initBoard,
                             activePlayer = White,
                             moveNumber = 1 }
 -- \---
