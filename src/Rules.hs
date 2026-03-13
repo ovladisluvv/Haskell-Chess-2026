@@ -9,13 +9,26 @@ import Moves (allPossibleMoves)
 applyMove :: GameState -> Move -> GameState
 applyMove gs move = gs { board = newBoard,
                          activePlayer = oppositeColor (activePlayer gs),
-                         moveNumber = moveNumber gs + turnInc (activePlayer gs)
+                         moveNumber = moveNumber gs + turnInc (activePlayer gs),
+                         halfMoveCount = updatedHalfMoveCount
                        }
     where
         newBoard = movePiece (board gs) (moveFrom move) (moveTo move)
 
         turnInc White = 0
         turnInc Black = 1
+
+        updatedHalfMoveCount
+            | isCapture || isPawnMove = 0
+            | otherwise = halfMoveCount gs + 1
+
+        isPawnMove = case getPiece (board gs) (moveFrom move) of
+            Just (Piece Pawn _) -> True
+            _ -> False
+            
+        isCapture = case getPiece (board gs) (moveTo move) of
+            Just _ -> True
+            Nothing -> False
 
 -- Поиск короля заданного цвета на доске. Проходит по всем позициям и возвращает позицию, на которой находится король
 findKing :: Board -> Color -> Pos
@@ -51,6 +64,26 @@ isCheckmate gs = null (allLegalMoves gs) && isCheck gs (activePlayer gs)
 isStalemate :: GameState -> Bool
 isStalemate gs = null (allLegalMoves gs) && not (isCheck gs (activePlayer gs))
 
--- ToDo : Реализовать проверку на ничью по правилу 50 ходов
--- ToDo : Реализовать проверку на ничью по повторению позиции
+-- Проверка на ничью по недостатку материала
+isInsufficientMaterial :: GameState -> Bool
+isInsufficientMaterial gs = case filter notKing allPieces of
+    [] -> True -- Король против Короля
+    [(_, Piece Knight _)] -> True -- Король и Конь против Короля
+    [(_, Piece Bishop _)] -> True -- Король и Слон против Короля
+    [(pos1, Piece Bishop _), (pos2, Piece Bishop _)] -> isSameColor pos1 pos2 -- Два слона на одноцветных полях
+    _ -> False -- Во всех остальных случаях материала достаточно
+    where
+        notKing (_, p) = pieceType p /= King
+
+        allPieces = concatMap getPosAndPiece [Pos f r | f <- [0..7], r <- [0..7]]
+        
+        getPosAndPiece pos = case getPiece (board gs) pos of
+            Just p -> [(pos, p)]
+            Nothing -> []
+
+        isSameColor (Pos f1 r1) (Pos f2 r2) = ((f1 + r1) `mod` 2) == ((f2 + r2) `mod` 2)
+
+-- Проверка на ничью по правилу 50 ходов
+isFiftyMoveRule :: GameState -> Bool
+isFiftyMoveRule gs = halfMoveCount gs >= 100
 -- \---

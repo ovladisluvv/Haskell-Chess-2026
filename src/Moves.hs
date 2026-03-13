@@ -8,29 +8,29 @@ import Data.Maybe (isNothing)
 
 -- /--- Вспомогательная библиотека для генерации ходов 
 -- Возможные смещения для Коня
-knightOffsets :: [(Int, Int)]
-knightOffsets = [(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)]
+knightOffsets :: [Offsets]
+knightOffsets = [Offsets 1 2, Offsets 2 1, Offsets 2 (-1), Offsets 1 (-2), Offsets (-1) (-2), Offsets (-2) (-1), Offsets (-2) 1, Offsets (-1) 2]
 
 -- Возможные смещения для Короля
-kingOffsets :: [(Int, Int)]
-kingOffsets = [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)]
+kingOffsets :: [Offsets]
+kingOffsets = [Offsets 0 1, Offsets 1 1, Offsets 1 0, Offsets 1 (-1), Offsets 0 (-1), Offsets (-1) (-1), Offsets (-1) 0, Offsets (-1) 1]
 
 -- Направления для Ладьи
-rookDirs :: [(Int, Int)]
-rookDirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+rookDirs :: [Directions]
+rookDirs = [Directions 0 1, Directions 1 0, Directions 0 (-1), Directions (-1) 0]
  
 -- Направления для Слона
-bishopDirs :: [(Int, Int)]
-bishopDirs = [(1, 1), (1, -1), (-1, -1), (-1, 1)]
+bishopDirs :: [Directions]
+bishopDirs = [Directions 1 1, Directions 1 (-1), Directions (-1) (-1), Directions (-1) 1]
 
 -- Направления для Ферзя
-queenDirs :: [(Int, Int)]
+queenDirs :: [Directions]
 queenDirs = rookDirs ++ bishopDirs
 -- \---
 
 -- /--- Библиотека генерации ходов
 -- Генерация ходов для Коня и Короля. Применяет фиксированные смещения с проверкой валидности хода
-stepMoves :: Board -> Pos -> Color -> [(Int, Int)] -> [Pos]
+stepMoves :: Board -> Pos -> Color -> [Offsets] -> [Pos]
 stepMoves b pos color offsets = filter isValidStep (map nextPos offsets)
     where
         isValidStep piecePos = isValidPos piecePos && notOwnPiece piecePos
@@ -39,15 +39,15 @@ stepMoves b pos color offsets = filter isValidStep (map nextPos offsets)
             Nothing -> True
             Just (Piece _ pieceColor) -> pieceColor /= color
 
-        nextPos (dx, dy) = Pos (file pos + dx) (rank pos + dy)
+        nextPos (Offsets dx dy) = Pos (file pos + dx) (rank pos + dy)
 
 -- Генерация ходов для Ладьи, Слона и Ферзя. Продолжает движение по лучу, пока не встретит край доски или фигуру
-slideMoves :: Board -> Pos -> Color -> [(Int, Int)] -> [Pos]
+slideMoves :: Board -> Pos -> Color -> [Directions] -> [Pos]
 slideMoves b pos color dirs = concatMap (slide pos) dirs
     where
-        slide curPos (dx, dy)
+        slide curPos (Directions dx dy)
             | isValidPos nextPos = case getPiece b nextPos of
-                Nothing -> nextPos : slide nextPos (dx, dy)
+                Nothing -> nextPos : slide nextPos (Directions dx dy)
                 Just (Piece _ pieceColor) -> [nextPos | pieceColor /= color]
             | otherwise = []
             where nextPos = Pos (file curPos + dx) (rank curPos + dy)
