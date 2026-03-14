@@ -80,17 +80,23 @@ pawnMoves b (Pos f r) color = forwardMoves ++ filter captureMoves [Pos (f - 1) (
 piecePossibleMoves :: Board -> Pos -> [Move]
 piecePossibleMoves b pos = case getPiece b pos of
     Nothing -> []
-    Just (Piece pieceType color) -> map makeMove pieceTypes
-        where
-            pieceTypes = case pieceType of
-                Pawn -> pawnMoves b pos color
-                Knight -> stepMoves b pos color knightOffsets
-                Bishop -> slideMoves b pos color bishopDirs
-                Rook -> slideMoves b pos color rookDirs
-                Queen -> slideMoves b pos color queenDirs
-                King -> stepMoves b pos color kingOffsets
-            
-            makeMove target = Move pos target Nothing -- Nothing для пешки, пока не реализовано превращение
+    Just (Piece pieceType color) -> case pieceType of
+        Pawn -> concatMap (makePawnMove color) (pawnMoves b pos color)
+        Knight -> map makeMove (stepMoves b pos color knightOffsets)
+        Bishop -> map makeMove (slideMoves b pos color bishopDirs)
+        Rook -> map makeMove (slideMoves b pos color rookDirs)
+        Queen -> map makeMove (slideMoves b pos color queenDirs)
+        King -> map makeMove (stepMoves b pos color kingOffsets)
+
+    where
+        makeMove target = Move pos target Nothing
+
+        makePawnMove color target 
+            | (rank target == 7 && color == White) || (rank target == 0 && color == Black) = [ Move pos target (Just Queen), 
+                                                                                               Move pos target (Just Rook),
+                                                                                               Move pos target (Just Bishop),
+                                                                                               Move pos target (Just Knight) ]
+            | otherwise = [Move pos target Nothing]
 
 -- Генерация всех возможных ходов для активного игрока
 allPossibleMoves :: GameState -> [Move]

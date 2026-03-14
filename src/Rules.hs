@@ -7,13 +7,17 @@ import Moves (allPossibleMoves)
 --- /--- Библиотека для проверки правил шахматной игры
 -- Применение хода к состоянию игры: обновление доски, смена активного игрока и увеличение счетчика ходов после хода черных
 applyMove :: GameState -> Move -> GameState
-applyMove gs move = gs { board = newBoard,
+applyMove gs move = gs { board = finalBoard,
                          activePlayer = oppositeColor (activePlayer gs),
                          moveNumber = moveNumber gs + turnInc (activePlayer gs),
                          halfMoveCount = updatedHalfMoveCount
                        }
     where
         newBoard = movePiece (board gs) (moveFrom move) (moveTo move)
+
+        finalBoard = case movePromote move of
+            Just promotedPieceType -> setPiece newBoard (moveTo move) (Just (Piece promotedPieceType (activePlayer gs)))
+            Nothing -> newBoard
 
         turnInc White = 0
         turnInc Black = 1
@@ -60,6 +64,10 @@ allLegalMoves gs = filter (isMoveLegal gs) (allPossibleMoves gs)
 isCheckmate :: GameState -> Bool
 isCheckmate gs = null (allLegalMoves gs) && isCheck gs (activePlayer gs)
 
+-- Проверка на ничью
+isDraw :: GameState -> Bool
+isDraw gs = isStalemate gs || isInsufficientMaterial gs || isFiftyMoveRule gs
+
 -- Проверка на пат
 isStalemate :: GameState -> Bool
 isStalemate gs = null (allLegalMoves gs) && not (isCheck gs (activePlayer gs))
@@ -70,6 +78,7 @@ isInsufficientMaterial gs = case filter notKing allPieces of
     [] -> True -- Король против Короля
     [(_, Piece Knight _)] -> True -- Король и Конь против Короля
     [(_, Piece Bishop _)] -> True -- Король и Слон против Короля
+    [(pos1, Piece Knight _), (pos2, Piece Knight _)] -> True -- Король и два коня против Короля
     [(pos1, Piece Bishop _), (pos2, Piece Bishop _)] -> isSameColor pos1 pos2 -- Два слона на одноцветных полях
     _ -> False -- Во всех остальных случаях материала достаточно
     where
