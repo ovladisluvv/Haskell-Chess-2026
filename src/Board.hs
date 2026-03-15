@@ -79,5 +79,6 @@ initGameState = GameState { board = initBoard,
                             activePlayer = White,
                             moveNumber = 1,
                             halfMoveCount = 0,
+                            enPassantTarget = Nothing,
                             selectedPos = Nothing }
 -- \---

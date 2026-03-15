@@ -37,6 +37,7 @@ data GameState = GameState { board :: Board,
                              activePlayer :: Color,
                              moveNumber :: Int, -- Номер хода увеличивается после хода черных
                              halfMoveCount :: Int, -- Счетчик полуходов для правила 50 ходов
+                             enPassantTarget :: Maybe Pos, -- Позиция, доступная для взятия на проходе, если таковая имеется
                              selectedPos :: Maybe Pos -- Позиция выбранной фигуры для хода, если есть
                            } deriving (Show, Eq)
 

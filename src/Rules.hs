@@ -5,22 +5,36 @@ import Board
 import Moves (allPossibleMoves)
 
 --- /--- Библиотека для проверки правил шахматной игры
+-- Вспомотельная функция для применения хода. Увеличивает счетчик ходов после хода черных
+turnInc :: Color -> Int
+turnInc White = 0
+turnInc Black = 1
+
+-- Вспомогательная функция для применения хода. Определяет направление движения пешки в зависимости от цвета
+pawnPushDir :: Color -> Int
+pawnPushDir White = 1
+pawnPushDir Black = -1
+
 -- Применение хода к состоянию игры: обновление доски, смена активного игрока и увеличение счетчика ходов после хода черных
 applyMove :: GameState -> Move -> GameState
 applyMove gs move = gs { board = finalBoard,
                          activePlayer = oppositeColor (activePlayer gs),
                          moveNumber = moveNumber gs + turnInc (activePlayer gs),
-                         halfMoveCount = updatedHalfMoveCount
+                         halfMoveCount = updatedHalfMoveCount,
+                         enPassantTarget = newEnPassantTarget
                        }
     where
-        newBoard = movePiece (board gs) (moveFrom move) (moveTo move)
+        movedBoard = movePiece (board gs) (moveFrom move) (moveTo move)
+
+        boardAfterEp
+            | isPawnMove && Just (moveTo move) == enPassantTarget gs = setPiece movedBoard enPassantedPawnPos Nothing
+            | otherwise = movedBoard
+
+        enPassantedPawnPos = Pos (file (moveTo move)) (rank (moveFrom move))
 
         finalBoard = case movePromote move of
-            Just promotedPieceType -> setPiece newBoard (moveTo move) (Just (Piece promotedPieceType (activePlayer gs)))
-            Nothing -> newBoard
-
-        turnInc White = 0
-        turnInc Black = 1
+            Just promotedPieceType -> setPiece boardAfterEp (moveTo move) (Just (Piece promotedPieceType (activePlayer gs)))
+            Nothing -> boardAfterEp
 
         updatedHalfMoveCount
             | isCapture || isPawnMove = 0
@@ -33,6 +47,11 @@ applyMove gs move = gs { board = finalBoard,
         isCapture = case getPiece (board gs) (moveTo move) of
             Just _ -> True
             Nothing -> False
+
+        newEnPassantTarget
+            | isPawnMove && abs (rank (moveTo move) - rank (moveFrom move)) == 2 = 
+                Just (Pos (file (moveFrom move)) (rank (moveFrom move) + pawnPushDir (activePlayer gs)))
+            | otherwise = Nothing
 
 -- Поиск короля заданного цвета на доске. Проходит по всем позициям и возвращает позицию, на которой находится король
 findKing :: Board -> Color -> Pos
@@ -78,7 +97,7 @@ isInsufficientMaterial gs = case filter notKing allPieces of
     [] -> True -- Король против Короля
     [(_, Piece Knight _)] -> True -- Король и Конь против Короля
     [(_, Piece Bishop _)] -> True -- Король и Слон против Короля
-    [(pos1, Piece Knight _), (pos2, Piece Knight _)] -> True -- Король и два коня против Короля
+    [(_, Piece Knight _), (_, Piece Knight _)] -> True -- Король и два коня против Короля
     [(pos1, Piece Bishop _), (pos2, Piece Bishop _)] -> isSameColor pos1 pos2 -- Два слона на одноцветных полях
     _ -> False -- Во всех остальных случаях материала достаточно
     where

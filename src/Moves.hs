@@ -76,12 +76,23 @@ pawnMoves b (Pos f r) color = forwardMoves ++ filter captureMoves [Pos (f - 1) (
             Just (Piece _ pieceColor) -> pieceColor /= color
             Nothing -> False
 
+-- Генерация ходов взятия на проходе для пешек. Проверяет, соответствует ли цель взятия на проходе и находится ли она по диагонали от пешки
+enPassantMoves :: GameState -> Pos -> Color -> [Pos]
+enPassantMoves gs pos color = case enPassantTarget gs of
+    Nothing -> []
+    Just epTarget
+        | isDiagonal pos epTarget color -> [epTarget]
+        | otherwise -> []
+    where
+        isDiagonal (Pos f1 r1) (Pos f2 r2) White = abs (f1 - f2) == 1 && r2 - r1 == 1
+        isDiagonal (Pos f1 r1) (Pos f2 r2) Black = abs (f1 - f2) == 1 && r1 - r2 == 1
+
 -- Получение всех возможных ходов для конкретной фигуры
-piecePossibleMoves :: Board -> Pos -> [Move]
-piecePossibleMoves b pos = case getPiece b pos of
+piecePossibleMoves :: GameState -> Pos -> [Move]
+piecePossibleMoves gs pos = case getPiece b pos of
     Nothing -> []
     Just (Piece pieceType color) -> case pieceType of
-        Pawn -> concatMap (makePawnMove color) (pawnMoves b pos color)
+        Pawn -> concatMap (makePawnMove color) (pawnMoves b pos color ++ enPassantMoves gs pos color)
         Knight -> map makeMove (stepMoves b pos color knightOffsets)
         Bishop -> map makeMove (slideMoves b pos color bishopDirs)
         Rook -> map makeMove (slideMoves b pos color rookDirs)
@@ -89,6 +100,8 @@ piecePossibleMoves b pos = case getPiece b pos of
         King -> map makeMove (stepMoves b pos color kingOffsets)
 
     where
+        b = board gs
+
         makeMove target = Move pos target Nothing
 
         makePawnMove color target 
@@ -103,7 +116,7 @@ allPossibleMoves :: GameState -> [Move]
 allPossibleMoves gs = concatMap getMovesForPos [Pos f r | f <- [0..7], r <- [0..7]]
     where
         getMovesForPos piecePos = case getPiece (board gs) piecePos of
-            Just (Piece _ pieceColor) | pieceColor == activePlayer gs -> piecePossibleMoves (board gs) piecePos
+            Just (Piece _ pieceColor) | pieceColor == activePlayer gs -> piecePossibleMoves gs piecePos
             _ -> []
 
 -- ToDo : Реализовать превращение пешки 
