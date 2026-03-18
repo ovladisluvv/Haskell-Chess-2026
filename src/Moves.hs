@@ -5,6 +5,7 @@ import Board
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Data.Maybe (isNothing)
+import Data.Bool (Bool)
 
 -- /--- Вспомогательная библиотека для генерации ходов 
 -- Возможные смещения для Коня
@@ -72,21 +73,71 @@ pawnMoves b (Pos f r) color = forwardMoves ++ filter (isValidPos piecePos && has
             Just (Piece _ pieceColor) -> pieceColor /= color
             Nothing -> False
 
+-- Вспомогательная функция для генерации ходов взятия на проходе. Проверяет, находится ли цель взятия на проходе по диагонали от пешки
+isDiagonal :: Pos -> Pos -> Color -> Bool
+isDiagonal (Pos f1 r1) (Pos f2 r2) White = abs (f1 - f2) == 1 && r2 - r1 == 1
+isDiagonal (Pos f1 r1) (Pos f2 r2) Black = abs (f1 - f2) == 1 && r1 - r2 == 1
+
+-- Генерация ходов взятия на проходе для пешек. Проверяет, соответствует ли цель взятия на проходе и находится ли она по диагонали от пешки
+enPassantMoves :: GameState -> Pos -> Color -> [Pos]
+enPassantMoves gs pos color = case enPassantTarget gs of
+    Nothing -> []
+    Just epTarget
+        | isDiagonal pos epTarget color -> [epTarget]
+        | otherwise -> []
+
+-- Вспомогательная функция для получения возможных рокировок. Выдает начальную горизонталь короля в зависимости от цвета
+homeRank :: Color -> Int
+homeRank White = 0
+homeRank Black = 7
+
+-- Вспомогательная функция для проверки прав на короткую рокировку
+canCastleKSide :: Color -> CastlingRights -> Bool
+canCastleKSide White = whiteKingSide
+canCastleKSide Black = blackKingSide
+
+-- Вспомогательная функция для проверки прав на длинную рокировку
+canCastleQSide :: Color -> CastlingRights -> Bool
+canCastleQSide White = whiteQueenSide
+canCastleQSide Black = blackQueenSide
+
+-- Генерация возможных ходов рокировки для короля. Проверяет наличие прав на рокировку, отсутствие фигур между королем и ладьей, а также отсутствие шаха на пути короля
+castlingMoves :: GameState -> Color -> [Pos]
+castlingMoves gs color = castleKSide ++ castleQSide
+    where
+        isClear file = isNothing (getPiece (board gs) (Pos file (homeRank color)))
+        
+        castleKSide
+            | canCastleKSide color (castlingRights gs) && isClear 5 && isClear 6 = [Pos 6 (homeRank color)]
+            | otherwise = []
+            
+        castleQSide
+            | canCastleQSide color (castlingRights gs) && isClear 1 && isClear 2 && isClear 3 = [Pos 2 (homeRank color)]
+            | otherwise = []
+
 -- Получение всех возможных ходов для конкретной фигуры
 piecePossibleMoves :: Board -> Pos -> [Move]
 piecePossibleMoves b pos = case (getPiece b pos) of
     Nothing -> []
-    Just (Piece pieceType color) -> map makeMove pieceTypes
-        where
-            pieceTypes = case pieceType of
-                Pawn -> pawnMoves b pos color
-                Knight -> stepMoves b pos color knightOffsets
-                Bishop -> slideMoves b pos color bishopDirs
-                Rook -> slideMoves b pos color rookDirs
-                Queen -> slideMoves b pos color queenDirs
-                King -> stepMoves b pos color kingOffsets
-            
-            makeMove target = Move pos target Nothing -- Nothing для пешки, пока не реализовано превращение
+    Just (Piece pieceType color) -> case pieceType of
+        Pawn -> concatMap (makePawnMove color) (pawnMoves b pos color ++ enPassantMoves gs pos color)
+        Knight -> map makeMove (stepMoves b pos color knightOffsets)
+        Bishop -> map makeMove (slideMoves b pos color bishopDirs)
+        Rook -> map makeMove (slideMoves b pos color rookDirs)
+        Queen -> map makeMove (slideMoves b pos color queenDirs)
+        King -> map makeMove (stepMoves b pos color kingOffsets ++ castlingMoves gs color)
+
+    where
+        b = board gs
+
+        makeMove target = Move pos target Nothing
+
+        makePawnMove color target 
+            | (rank target == 7 && color == White) || (rank target == 0 && color == Black) = [ Move pos target (Just Queen), 
+                                                                                               Move pos target (Just Rook),
+                                                                                               Move pos target (Just Bishop),
+                                                                                               Move pos target (Just Knight) ]
+            | otherwise = [Move pos target Nothing]
 
 -- Генерация всех возможных ходов для активного игрока
 allPossibleMoves :: GameState -> [Move]
@@ -95,8 +146,4 @@ allPossibleMoves gs = concatMap getMovesForPos [Pos f r | f <- [0..7], r <- [0..
         getMovesForPos piecePos = case (getPiece (board gs) piecePos) of
             Just (Piece _ pieceColor) | pieceColor == (activePlayer gs) -> piecePossibleMoves (board gs) piecePos
             _ -> []
-
--- ToDo : Реализовать превращение пешки 
--- ToDo : Реализовать рокировку
--- ToDo : Реализовать взятие на проходе
 -- \---

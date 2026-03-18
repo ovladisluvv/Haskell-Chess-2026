@@ -77,5 +77,9 @@ initBoard = V.generate 64 initSquare
 initGameState :: GameState
 initGameState = GameState { b = initBoard,
                             activePlayer = White,
-                            moveNumber = 1 }
+                            moveNumber = 1,
+                            halfMoveCount = 0,
+                            enPassantTarget = Nothing,
+                            castlingRights = CastlingRights True True True True,
+                            selectedPos = Nothing }
 -- \---

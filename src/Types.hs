@@ -20,7 +20,7 @@ data Piece = Piece { pieceType :: PieceType,
 
 -- Позиция на шахматной доске, представленная в виде структуры с полями для столбца и ряда
 data Pos = Pos { file :: Int, -- Столбец на шахматной доске, от 0 до 7 [0 = 'a', 1 = 'b', ..., 7 = 'h']
-                 rank :: Int  -- Ряд на шахматной доске, от 0 до 7 [0 = '1', 1 = '2', ..., 7 = '8']
+                 rank :: Int -- Ряд на шахматной доске, от 0 до 7 [0 = '1', 1 = '2', ..., 7 = '8']
                } deriving (Show, Eq, Ord)
 
 -- Шахматная доска, представленная в виде отображения позиций в фигуры
@@ -32,8 +32,22 @@ data Move = Move { moveFrom :: Pos,
                    movePromote :: Maybe PieceType -- Nothing, если ход не связан с превращением пешки, Just PieceType - тип фигуры, в которую превращается пешка
                  } deriving (Show, Eq)
 
+data CastlingRights = CastlingRights { whiteKingSide :: Bool,
+                                       whiteQueenSide :: Bool,
+                                       blackKingSide :: Bool,
+                                       blackQueenSide :: Bool
+                                     } deriving (Show, Eq)
+
 -- Состояние игры. Включает текущую позицию на доске, активного игрока и номер хода
 data GameState = GameState { board :: Board,
                              activePlayer :: Color,
+<<<<<<< Updated upstream
                              moveNumber :: Int -- Номер хода увеличивается после хода черных
+=======
+                             moveNumber :: Int, -- Номер хода увеличивается после хода черных
+                             halfMoveCount :: Int, -- Счетчик полуходов для правила 50 ходов
+                             enPassantTarget :: Maybe Pos, -- Позиция, доступная для взятия на проходе, если таковая имеется
+                             castlingRights :: CastlingRights, -- Права на рокировку для обеих сторон
+                             selectedPos :: Maybe Pos -- Позиция выбранной фигуры для хода, если есть
+>>>>>>> Stashed changes
                            } deriving (Show, Eq)
