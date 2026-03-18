@@ -23,3 +23,8 @@ cabal.project.local~
 .ghc.environment.*
 .stack-work/
 *~
+.DS_Store
+CHANGELOG.md
+Setup.hs
+stack.yaml.lock
+stack.yaml
