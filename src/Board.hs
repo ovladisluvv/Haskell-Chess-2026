@@ -80,6 +80,7 @@ initGameState = GameState { board = initBoard,
                             moveNumber = 1,
                             halfMoveCount = 0,
                             enPassantTarget = Nothing,
+                            castlingRights = CastlingRights True True True True,
                             selectedPos = Nothing,
                             promotionState = Nothing }
 -- \---

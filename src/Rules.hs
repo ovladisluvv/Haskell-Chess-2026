@@ -21,10 +21,17 @@ applyMove gs move = gs { board = finalBoard,
                          activePlayer = oppositeColor (activePlayer gs),
                          moveNumber = moveNumber gs + turnInc (activePlayer gs),
                          halfMoveCount = updatedHalfMoveCount,
-                         enPassantTarget = newEnPassantTarget
+                         enPassantTarget = newEnPassantTarget,
+                         castlingRights = updatedCastlingRights
                        }
     where
-        movedBoard = movePiece (board gs) (moveFrom move) (moveTo move)
+        movedBoard
+            | isCastling gs move = movePiece (movePiece (board gs) (moveFrom move) (moveTo move)) rookFrom rookTo
+            | otherwise = movePiece (board gs) (moveFrom move) (moveTo move)
+
+        (rookFrom, rookTo) = case file (moveTo move) of
+            6 -> (Pos 7 (rank (moveTo move)), Pos 5 (rank (moveTo move))) -- Короткая рокировка
+            2 -> (Pos 0 (rank (moveTo move)), Pos 3 (rank (moveTo move))) -- Длинная рокировка
 
         boardAfterEp
             | isPawnMove && Just (moveTo move) == enPassantTarget gs = setPiece movedBoard enPassantedPawnPos Nothing
@@ -53,27 +60,68 @@ applyMove gs move = gs { board = finalBoard,
                 Just (Pos (file (moveFrom move)) (rank (moveFrom move) + pawnPushDir (activePlayer gs)))
             | otherwise = Nothing
 
+        updatedCastlingRights = CastlingRights { whiteKingSide = whiteKingSide (castlingRights gs) && keepWhiteKingside,
+                                                 whiteQueenSide = whiteQueenSide (castlingRights gs) && keepWhiteQueenside,
+                                                 blackKingSide = blackKingSide (castlingRights gs) && keepBlackKingside,
+                                                 blackQueenSide = blackQueenSide (castlingRights gs) && keepBlackQueenside
+                                               }
+
+        -- Шаблон проверки: не двигался король && нужная ладья не двигалась && нужная ладья не была съедена 
+        keepWhiteKingside = (moveFrom move) /= Pos 4 0 && (moveFrom move) /= Pos 7 0 && (moveTo move) /= Pos 7 0
+        keepWhiteQueenside = (moveFrom move) /= Pos 4 0 && (moveFrom move) /= Pos 0 0 && (moveTo move) /= Pos 0 0
+        keepBlackKingside = (moveFrom move) /= Pos 4 7 && (moveFrom move) /= Pos 7 7 && (moveTo move) /= Pos 7 7
+        keepBlackQueenside = (moveFrom move) /= Pos 4 7 && (moveFrom move) /= Pos 0 7 && (moveTo move) /= Pos 0 7
+
+isCastling :: GameState -> Move -> Bool
+isCastling gs move = isKingMove && isLongMove
+  where
+    isKingMove = case getPiece (board gs) (moveFrom move) of
+        Just (Piece King _) -> True
+        _ -> False
+
+    isLongMove = abs (file (moveTo move) - file (moveFrom move)) == 2
+
+-- Проверка, находится ли клетка под атакой
+isSquareAttacked :: GameState -> Pos -> Color -> Bool
+isSquareAttacked gs targetPos color = targetPos `elem` (map moveTo opponentMoves) || isPawnAttacking
+    where
+        -- Эмуляция очереди хода оппонента для получения всех клеток под атакой
+        tempGs = gs { activePlayer = oppositeColor color }
+
+        opponentMoves = allPossibleMoves tempGs
+
+        isPawnAttacking = any hasEnemyPawn pawnAttackPos
+
+        pawnAttackPos = [ Pos (file targetPos - 1) (rank targetPos + pawnPushDir color),
+                          Pos (file targetPos + 1) (rank targetPos + pawnPushDir color) 
+                        ]
+                         
+        hasEnemyPawn pos = isValidPos pos && case getPiece (board gs) pos of
+            Just (Piece Pawn opponentColor) -> opponentColor == oppositeColor color
+            _ -> False
+
 -- Поиск короля заданного цвета на доске. Проходит по всем позициям и возвращает позицию, на которой находится король
 findKing :: Board -> Color -> Pos
 findKing b color = head (filter isKing [Pos f r | f <- [0..7], r <- [0..7]])
     where
         isKing piecePos = case getPiece b piecePos of
-            Just (Piece King pieceColor) -> pieceColor == color
+            Just (Piece King pColor) -> pColor == color
             _ -> False
 
 -- Проверка на шах
 isCheck :: GameState -> Color -> Bool
-isCheck gs color = kingPos `elem` (map moveTo opponentMoves)
-    where
-        kingPos = findKing (board gs) color
-        
-        -- Эмуляция очереди хода оппонента для получения всех клеток под атакой
-        tempGs = gs { activePlayer = oppositeColor color }
-        opponentMoves = allPossibleMoves tempGs
+isCheck gs color = isSquareAttacked gs (findKing (board gs) color) color
 
 -- Проверка легальности хода. Ход легален, если после его совершения король ходившего игрока не находится под шахом
 isMoveLegal :: GameState -> Move -> Bool
-isMoveLegal gs move = not (isCheck (applyMove gs move) (activePlayer gs))
+isMoveLegal gs move
+    | isCastling gs move = not (isCheck gs (activePlayer gs)) && 
+                           not (isSquareAttacked gs passedSquare (activePlayer gs)) && 
+                           not (isCheck (applyMove gs move) (activePlayer gs))
+    | otherwise = not (isCheck (applyMove gs move) (activePlayer gs))
+    where
+        -- Клетка, которую перепрыгивает король
+        passedSquare = Pos ((file (moveFrom move) + file (moveTo move)) `div` 2) (rank (moveFrom move))
 
 --Генерация всех легальных ходов для активного игрока
 allLegalMoves :: GameState -> [Move]
