@@ -5,9 +5,19 @@ import Board
 import Moves (allPossibleMoves)
 
 --- /--- Библиотека для проверки правил шахматной игры
+-- Вспомотельная функция для применения хода. Увеличивает счетчик ходов после хода черных
+turnInc :: Color -> Int
+turnInc White = 0
+turnInc Black = 1
+
+-- Вспомогательная функция для применения хода. Определяет направление движения пешки в зависимости от цвета
+pawnPushDir :: Color -> Int
+pawnPushDir White = 1
+pawnPushDir Black = -1
+
 -- Применение хода к состоянию игры: обновление доски, смена активного игрока и увеличение счетчика ходов после хода черных
 applyMove :: GameState -> Move -> GameState
-applyMove gs move = gs { board = newBoard,
+applyMove gs move = gs { board = finalBoard,
                          activePlayer = oppositeColor (activePlayer gs),
                          moveNumber = moveNumber gs + turnInc (activePlayer gs),
                          halfMoveCount = updatedHalfMoveCount,
@@ -77,6 +87,7 @@ isSquareAttacked gs targetPos color = targetPos `elem` (map moveTo opponentMoves
     where
         -- Эмуляция очереди хода оппонента для получения всех клеток под атакой
         tempGs = gs { activePlayer = oppositeColor color }
+
         opponentMoves = allPossibleMoves tempGs
 
         isPawnAttacking = any hasEnemyPawn pawnAttackPos
@@ -105,8 +116,8 @@ isCheck gs color = isSquareAttacked gs (findKing (board gs) color) color
 isMoveLegal :: GameState -> Move -> Bool
 isMoveLegal gs move
     | isCastling gs move = not (isCheck gs (activePlayer gs)) && 
-                   not (isSquareAttacked gs passedSquare (activePlayer gs)) && 
-                   not (isCheck (applyMove gs move) (activePlayer gs))
+                           not (isSquareAttacked gs passedSquare (activePlayer gs)) && 
+                           not (isCheck (applyMove gs move) (activePlayer gs))
     | otherwise = not (isCheck (applyMove gs move) (activePlayer gs))
     where
         -- Клетка, которую перепрыгивает король
@@ -118,12 +129,37 @@ allLegalMoves gs = filter (isMoveLegal gs) (allPossibleMoves gs)
 
 -- Проверка на мат
 isCheckmate :: GameState -> Bool
-isCheckmate gs = (null (allLegalMoves gs)) && (isCheck gs (activePlayer gs))
+isCheckmate gs = null (allLegalMoves gs) && isCheck gs (activePlayer gs)
+
+-- Проверка на ничью
+isDraw :: GameState -> Bool
+isDraw gs = isStalemate gs || isInsufficientMaterial gs || isFiftyMoveRule gs
 
 -- Проверка на пат
 isStalemate :: GameState -> Bool
-isStalemate gs = (null (allLegalMoves gs)) && (not (isCheck gs (activePlayer gs)))
+isStalemate gs = null (allLegalMoves gs) && not (isCheck gs (activePlayer gs))
 
--- ToDo : Реализовать проверку на ничью по правилу 50 ходов
--- ToDo : Реализовать проверку на ничью по повторению позиции
+-- Проверка на ничью по недостатку материала
+isInsufficientMaterial :: GameState -> Bool
+isInsufficientMaterial gs = case filter notKing allPieces of
+    [] -> True -- Король против Короля
+    [(_, Piece Knight _)] -> True -- Король и Конь против Короля
+    [(_, Piece Bishop _)] -> True -- Король и Слон против Короля
+    [(_, Piece Knight _), (_, Piece Knight _)] -> True -- Король и два коня против Короля
+    [(pos1, Piece Bishop _), (pos2, Piece Bishop _)] -> isSameColor pos1 pos2 -- Два слона на одноцветных полях
+    _ -> False -- Во всех остальных случаях материала достаточно
+    where
+        notKing (_, p) = pieceType p /= King
+
+        allPieces = concatMap getPosAndPiece [Pos f r | f <- [0..7], r <- [0..7]]
+        
+        getPosAndPiece pos = case getPiece (board gs) pos of
+            Just p -> [(pos, p)]
+            Nothing -> []
+
+        isSameColor (Pos f1 r1) (Pos f2 r2) = ((f1 + r1) `mod` 2) == ((f2 + r2) `mod` 2)
+
+-- Проверка на ничью по правилу 50 ходов
+isFiftyMoveRule :: GameState -> Bool
+isFiftyMoveRule gs = halfMoveCount gs >= 100
 -- \---

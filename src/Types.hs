@@ -41,13 +41,19 @@ data CastlingRights = CastlingRights { whiteKingSide :: Bool,
 -- Состояние игры. Включает текущую позицию на доске, активного игрока и номер хода
 data GameState = GameState { board :: Board,
                              activePlayer :: Color,
-<<<<<<< Updated upstream
-                             moveNumber :: Int -- Номер хода увеличивается после хода черных
-=======
                              moveNumber :: Int, -- Номер хода увеличивается после хода черных
                              halfMoveCount :: Int, -- Счетчик полуходов для правила 50 ходов
                              enPassantTarget :: Maybe Pos, -- Позиция, доступная для взятия на проходе, если таковая имеется
                              castlingRights :: CastlingRights, -- Права на рокировку для обеих сторон
                              selectedPos :: Maybe Pos -- Позиция выбранной фигуры для хода, если есть
->>>>>>> Stashed changes
                            } deriving (Show, Eq)
+
+-- Смещения. Необходимы для ходов Коня и Короля
+data Offsets = Offsets { fileOffset :: Int,
+                         rankOffset :: Int
+                       }
+
+-- Направления движения. Необходимы для Слона, Ладьи и Ферзя
+data Directions = Directions { fileDirection :: Int,
+                               rankDirection :: Int
+                             }

@@ -1,27 +1,28 @@
-name:                chess
+name:                haskell-chess
 version:             0.1.0.0
-github:              "githubuser/chess"
+github:              "ovladisluvv/Haskell-Chess-2026"
 license:             BSD-3-Clause
-author:              "Author name here"
+author:              "Ogai Vladislav, Ismurzenov Abay"
 maintainer:          "example@example.com"
-copyright:           "2026 Author name here"
+copyright:           "Ogai Vladislav, Ismurzenov Abay"
 
 extra-source-files:
 - README.md
 - CHANGELOG.md
 
 # Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+# synopsis:            Chess game implemented in Haskell using Gloss for rendering
+# category:            Game
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/chess#readme>
+description:         Please see the README on GitHub at <https://github.com/ovladisluvv/Haskell-Chess-2026#readme>
 
 dependencies:
 - base >= 4.19.0.0 && < 5
 - vector
+- gloss
 
 ghc-options:
 - -Wall
@@ -46,7 +47,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - chess
+    - haskell-chess
 
 tests:
   chess-test:
@@ -57,4 +58,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - chess
+    - haskell-chess

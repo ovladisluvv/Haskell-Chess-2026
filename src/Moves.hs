@@ -9,52 +9,56 @@ import Data.Bool (Bool)
 
 -- /--- Вспомогательная библиотека для генерации ходов 
 -- Возможные смещения для Коня
-knightOffsets :: [(Int, Int)]
-knightOffsets = [(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)]
+knightOffsets :: [Offsets]
+knightOffsets = [Offsets 1 2, Offsets 2 1, Offsets 2 (-1), Offsets 1 (-2), Offsets (-1) (-2), Offsets (-2) (-1), Offsets (-2) 1, Offsets (-1) 2]
 
 -- Возможные смещения для Короля
-kingOffsets :: [(Int, Int)]
-kingOffsets = [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)]
+kingOffsets :: [Offsets]
+kingOffsets = [Offsets 0 1, Offsets 1 1, Offsets 1 0, Offsets 1 (-1), Offsets 0 (-1), Offsets (-1) (-1), Offsets (-1) 0, Offsets (-1) 1]
 
 -- Направления для Ладьи
-rookDirs :: [(Int, Int)]
-rookDirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+rookDirs :: [Directions]
+rookDirs = [Directions 0 1, Directions 1 0, Directions 0 (-1), Directions (-1) 0]
  
 -- Направления для Слона
-bishopDirs :: [(Int, Int)]
-bishopDirs = [(1, 1), (1, -1), (-1, -1), (-1, 1)]
+bishopDirs :: [Directions]
+bishopDirs = [Directions 1 1, Directions 1 (-1), Directions (-1) (-1), Directions (-1) 1]
 
 -- Направления для Ферзя
-queenDirs :: [(Int, Int)]
+queenDirs :: [Directions]
 queenDirs = rookDirs ++ bishopDirs
 -- \---
 
 -- /--- Библиотека генерации ходов
 -- Генерация ходов для Коня и Короля. Применяет фиксированные смещения с проверкой валидности хода
-stepMoves :: Board -> Pos -> Color -> [(Int, Int)] -> [Pos]
-stepMoves b pos color offsets = filter (isValidPos piecePos && notOwnPiece piecePos) (map nextPos offsets)
+stepMoves :: Board -> Pos -> Color -> [Offsets] -> [Pos]
+stepMoves b pos color offsets = filter isValidStep (map nextPos offsets)
     where
-        notOwnPiece piecePos = case (getPiece b piecePos) of
+        isValidStep piecePos = isValidPos piecePos && notOwnPiece piecePos
+
+        notOwnPiece piecePos = case getPiece b piecePos of
             Nothing -> True
             Just (Piece _ pieceColor) -> pieceColor /= color
 
-        nextPos (dx, dy) = Pos (file pos + dx) (rank pos + dy)
+        nextPos (Offsets dx dy) = Pos (file pos + dx) (rank pos + dy)
 
 -- Генерация ходов для Ладьи, Слона и Ферзя. Продолжает движение по лучу, пока не встретит край доски или фигуру
-slideMoves :: Board -> Pos -> Color -> [(Int, Int)] -> [Pos]
+slideMoves :: Board -> Pos -> Color -> [Directions] -> [Pos]
 slideMoves b pos color dirs = concatMap (slide pos) dirs
     where
-        slide curPos (dx, dy)
-            | isValidPos nextPos = case (getPiece b nextPos) of
-                Nothing -> nextPos : slide nextPos (dx, dy)
+        slide curPos (Directions dx dy)
+            | isValidPos nextPos = case getPiece b nextPos of
+                Nothing -> nextPos : slide nextPos (Directions dx dy)
                 Just (Piece _ pieceColor) -> [nextPos | pieceColor /= color]
             | otherwise = []
             where nextPos = Pos (file curPos + dx) (rank curPos + dy)
 
 -- Генерация ходов для пешек. Учитывает направление движения, начальную позицию для двойного шага и возможность взятия по диагонали
 pawnMoves :: Board -> Pos -> Color -> [Pos]
-pawnMoves b (Pos f r) color = forwardMoves ++ filter (isValidPos piecePos && hasOpponentPiece piecePos) [Pos (f - 1) (r + dir), Pos (f + 1) (r + dir)]
+pawnMoves b (Pos f r) color = forwardMoves ++ filter captureMoves [Pos (f - 1) (r + dir), Pos (f + 1) (r + dir)]
     where
+        captureMoves piecePos = isValidPos piecePos && hasOpponentPiece piecePos
+        
         (dir, startRank) = case color of
             White -> (1, 1)
             Black -> (-1, 6)
@@ -62,14 +66,14 @@ pawnMoves b (Pos f r) color = forwardMoves ++ filter (isValidPos piecePos && has
         forward1 = Pos f (r + dir)
         forward2 = Pos f (r + 2 * dir)
 
-        isPathClear piecePos = (isValidPos piecePos) && (isNothing (getPiece b piecePos))
+        isPathClear piecePos = isValidPos piecePos && isNothing (getPiece b piecePos)
 
         forwardMoves
-            | (isPathClear forward1) && (r == startRank && (isPathClear forward2)) = [forward1, forward2]
+            | isPathClear forward1 && (r == startRank && isPathClear forward2) = [forward1, forward2]
             | isPathClear forward1 = [forward1]
             | otherwise = []
         
-        hasOpponentPiece piecePos = case (getPiece b piecePos) of
+        hasOpponentPiece piecePos = case getPiece b piecePos of
             Just (Piece _ pieceColor) -> pieceColor /= color
             Nothing -> False
 
@@ -116,8 +120,8 @@ castlingMoves gs color = castleKSide ++ castleQSide
             | otherwise = []
 
 -- Получение всех возможных ходов для конкретной фигуры
-piecePossibleMoves :: Board -> Pos -> [Move]
-piecePossibleMoves b pos = case (getPiece b pos) of
+piecePossibleMoves :: GameState -> Pos -> [Move]
+piecePossibleMoves gs pos = case getPiece b pos of
     Nothing -> []
     Just (Piece pieceType color) -> case pieceType of
         Pawn -> concatMap (makePawnMove color) (pawnMoves b pos color ++ enPassantMoves gs pos color)
@@ -143,7 +147,7 @@ piecePossibleMoves b pos = case (getPiece b pos) of
 allPossibleMoves :: GameState -> [Move]
 allPossibleMoves gs = concatMap getMovesForPos [Pos f r | f <- [0..7], r <- [0..7]]
     where
-        getMovesForPos piecePos = case (getPiece (board gs) piecePos) of
-            Just (Piece _ pieceColor) | pieceColor == (activePlayer gs) -> piecePossibleMoves (board gs) piecePos
+        getMovesForPos piecePos = case getPiece (board gs) piecePos of
+            Just (Piece _ pieceColor) | pieceColor == activePlayer gs -> piecePossibleMoves gs piecePos
             _ -> []
 -- \---

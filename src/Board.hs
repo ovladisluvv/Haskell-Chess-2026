@@ -75,7 +75,7 @@ initBoard = V.generate 64 initSquare
 
 -- Инициализация состояния игры
 initGameState :: GameState
-initGameState = GameState { b = initBoard,
+initGameState = GameState { board = initBoard,
                             activePlayer = White,
                             moveNumber = 1,
                             halfMoveCount = 0,
