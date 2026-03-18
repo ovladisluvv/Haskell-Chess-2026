@@ -7,10 +7,10 @@ module Render
 import Graphics.Gloss
 import Data.Maybe (fromMaybe)
 
-import Types (Piece(..), PieceType(..), GameState(..), Board, Pos(..), Move(..))
+import Types (Piece(..), PieceType(..), GameState(..), Board, Pos(..), Move(..), oppositeColor)
 import qualified Types as T
 import Board (getPiece)    
-import Rules (allLegalMoves)                         
+import Rules (allLegalMoves, isCheckmate, isDraw, isCheck, findKing)                    
 
 -- \\-- Константы для рендеринга
 -- Размер одной клетки в пикселях
@@ -39,8 +39,54 @@ toScreenY r = fromIntegral r * squareSize - fromIntegral windowSize / 2 + square
 -- \\ --
 
 -- \\-- Главная функция, собирает всю сцену
-drawGame :: [(String, Picture)] -> GameState -> Picture
-drawGame imgs state = Pictures [drawBoard, drawHighlights state, drawPieces imgs (board state), drawLabels]
+drawGame :: [(Piece, Picture)] -> GameState -> Picture
+drawGame imgs state = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs (board state), drawLabels, drawTurnIndicator state, drawPromotionMenu imgs state, drawGameOver state]
+
+-- Индикатор текущего хода
+drawTurnIndicator :: GameState -> Picture
+drawTurnIndicator state = 
+    let turnText = if activePlayer state == T.White then "Turn: White" else "Turn: Black"
+        edge = fromIntegral windowSize / 2
+        bgWidth = 140
+        bgHeight = 35
+        xCenter = -edge + (bgWidth / 2) + 10 
+        yCenter = 0
+    in Pictures 
+       [ Translate xCenter yCenter $ Color (makeColorI 0 0 0 150) $ Polygon [(-bgWidth/2, -bgHeight/2), (bgWidth/2, -bgHeight/2), (bgWidth/2, bgHeight/2), (-bgWidth/2, bgHeight/2)]
+       , Translate (xCenter - 55) (yCenter - 5) $ Scale 0.15 0.15 $ Color white $ Text turnText
+       ]
+
+-- Подсветка короля, если он под шахом
+drawCheckHighlight :: GameState -> Picture
+drawCheckHighlight state
+    | isCheck state (activePlayer state) =
+        let Pos f r = findKing (board state) (activePlayer state)
+            s = squareSize / 2
+        in Translate (toScreenX f) (toScreenY r) $
+           Color (makeColorI 255 0 0 180) $ -- красный полупрозрачный фон
+           Polygon [(-s, -s), (s, -s), (s, s), (-s, s)]
+    | otherwise = Blank
+
+-- Рисует меню превращения пешки
+drawPromotionMenu :: [(Piece, Picture)] -> GameState -> Picture
+drawPromotionMenu imgs state = case promotionState state of
+    Nothing -> Blank
+    Just (_, Pos f r) -> 
+        let playerColor = activePlayer state
+            dir = if playerColor == T.White then -1 else 1
+            opts = [ (r, Queen), (r + dir, Rook), (r + 2*dir, Bishop), (r + 3*dir, Knight) ]
+            sq = squareSize / 2
+            
+            drawOpt (rLoc, pt) = 
+                let menuBg = Translate (toScreenX f) (toScreenY rLoc) $ 
+                             Graphics.Gloss.Color (makeColorI 200 200 200 240) $ 
+                             Polygon [(-sq, -sq), (sq, -sq), (sq, sq), (-sq, sq)]
+                    border = Translate (toScreenX f) (toScreenY rLoc) $ 
+                             Graphics.Gloss.Color (makeColorI 100 100 100 255) $ 
+                             Line [(-sq, -sq), (sq, -sq), (sq, sq), (-sq, sq), (-sq, -sq)]
+                    pic = Translate (toScreenX f) (toScreenY rLoc) $ renderPiece imgs (Piece pt playerColor)
+                in Pictures [menuBg, border, pic]
+        in Pictures (map drawOpt opts)
 
 -- Рисует 64 клетки шахматной доски
 drawBoard :: Picture
@@ -59,7 +105,7 @@ drawBoard = Pictures [drawSquare f r | f <- [0..7], r <- [0..7]]
       | otherwise    = lightSquare
 
 -- Рисует все фигуры на доске
-drawPieces :: [(String, Picture)] -> Board -> Picture
+drawPieces :: [(Piece, Picture)] -> Board -> Picture
 drawPieces imgs b = Pictures [drawAt f r | f <- [0..7], r <- [0..7]]
   where
     drawAt f r = case getPiece b (Pos f r) of
@@ -67,22 +113,8 @@ drawPieces imgs b = Pictures [drawAt f r | f <- [0..7], r <- [0..7]]
         Just p  -> Translate (toScreenX f) (toScreenY r) (renderPiece imgs p)
 
 -- Рисует одну фигуру
-renderPiece :: [(String, Picture)] -> Piece -> Picture
-renderPiece imgs (Piece pt pc) = 
-    fromMaybe Blank (lookup imageName imgs) 
-  where 
-    imageName = colorPrefix ++ pieceSuffix pt
-
-    colorPrefix = case pc of
-        T.White -> "w"
-        T.Black -> "b"
-
-    pieceSuffix Pawn   = "p"
-    pieceSuffix Knight = "n"
-    pieceSuffix Bishop = "b"
-    pieceSuffix Rook   = "r"
-    pieceSuffix Queen  = "q"
-    pieceSuffix King   = "k"
+renderPiece :: [(Piece, Picture)] -> Piece -> Picture
+renderPiece imgs piece = fromMaybe Blank (lookup piece imgs)
 
 -- Рисует подписи координат (a–h, 1–8)
 drawLabels :: Picture
@@ -116,4 +148,26 @@ drawHighlights state = case selectedPos state of
         Color (makeColorI 100 100 100 200) $
         ThickCircle (squareSize / 2 - 5) 5 -- Серая рамка-круг внутри клетки
 
+-- Рисует окно окончания игры
+drawGameOver :: GameState -> Picture
+drawGameOver state
+    | isCheckmate state = drawMessage (winnerMessage ++ " Wins! (Mate)")
+    | isDraw state = drawMessage "Draw!"
+    | otherwise = Blank
+  where
+    -- Если мат, то проиграл активный игрок. Выигрывает противоположный.
+    winnerMessage = case oppositeColor (activePlayer state) of
+        T.White -> "White"
+        T.Black -> "Black"
+
+    drawMessage msg = Pictures 
+        [ -- Полупрозрачный фон поверх всей доски
+          Graphics.Gloss.Color (makeColorI 0 0 0 150) $ Polygon [(-w, -w), (w, -w), (w, w), (-w, w)]
+          -- Основной текст результата
+        , Translate (-150) 40 $ Scale 0.3 0.3 $ Graphics.Gloss.Color white $ Text msg
+          -- Подсказка для рестарта
+        , Translate (-120) (-40) $ Scale 0.15 0.15 $ Graphics.Gloss.Color (makeColorI 200 200 200 255) $ Text "Press R to Restart"
+        ]
+      where
+        w = fromIntegral windowSize / 2
 -- \-- 

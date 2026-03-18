@@ -4,7 +4,8 @@ module Lib
 
 import Graphics.Gloss 
 import Board (initGameState)
-import Types (GameState)
+import Types (GameState, Piece(..), PieceType(..))
+import qualified Types as T
 import Render (windowSize, drawGame)
 import Events (handleEvent)
 
@@ -26,7 +27,8 @@ update :: Float -> GameState -> GameState
 update _ state = state
 
 -- Загружаем спрайты
-loadImages :: IO [(String, Picture)]
+-- Загружаем спрайты
+loadImages :: IO [(Piece, Picture)]
 loadImages = do
     wpPic <- loadBMP "assets/pieces/wp.bmp"
     bpPic <- loadBMP "assets/pieces/bp.bmp"
@@ -41,8 +43,14 @@ loadImages = do
     wqPic <- loadBMP "assets/pieces/wq.bmp"
     bqPic <- loadBMP "assets/pieces/bq.bmp"
 
-    return [ ("wp", wpPic), ("bp", bpPic), ("wn", wnPic), ("bn", bnPic), ("wk", wkPic), ("bk", bkPic), ("wb", wbPic), ("bb", bbPic), ("wr", wrPic), ("br", brPic), ("wq", wqPic), ("bq", bqPic) ]
-
+    return [ 
+        (Piece Pawn T.White, wpPic),   (Piece Pawn T.Black, bpPic),
+        (Piece Knight T.White, wnPic), (Piece Knight T.Black, bnPic),
+        (Piece King T.White, wkPic),   (Piece King T.Black, bkPic),
+        (Piece Bishop T.White, wbPic), (Piece Bishop T.Black, bbPic),
+        (Piece Rook T.White, wrPic),   (Piece Rook T.Black, brPic),
+        (Piece Queen T.White, wqPic),  (Piece Queen T.Black, bqPic) 
+      ]
 -- \\-- Запуск
 
 run :: IO ()

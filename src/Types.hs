@@ -38,7 +38,8 @@ data GameState = GameState { board :: Board,
                              moveNumber :: Int, -- Номер хода увеличивается после хода черных
                              halfMoveCount :: Int, -- Счетчик полуходов для правила 50 ходов
                              enPassantTarget :: Maybe Pos, -- Позиция, доступная для взятия на проходе, если таковая имеется
-                             selectedPos :: Maybe Pos -- Позиция выбранной фигуры для хода, если есть
+                             selectedPos :: Maybe Pos, -- Позиция выбранной фигуры для хода, если есть
+                             promotionState :: Maybe (Pos, Pos) -- Координаты (откуда, куда) для отрисовки меню превращения
                            } deriving (Show, Eq)
 
 -- Смещения. Необходимы для ходов Коня и Короля

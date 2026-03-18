@@ -80,5 +80,6 @@ initGameState = GameState { board = initBoard,
                             moveNumber = 1,
                             halfMoveCount = 0,
                             enPassantTarget = Nothing,
-                            selectedPos = Nothing }
+                            selectedPos = Nothing,
+                            promotionState = Nothing }
 -- \---
