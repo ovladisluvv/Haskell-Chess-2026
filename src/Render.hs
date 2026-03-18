@@ -141,12 +141,18 @@ drawHighlights state = case selectedPos state of
     Nothing -> Blank
     Just selPos -> 
         let legalMoves = [moveTo m | m <- allLegalMoves state, moveFrom m == selPos]
-        in Pictures [drawHighlight pos | pos <- legalMoves]
+        in Pictures (drawActivePiece selPos : [drawHighlight pos | pos <- legalMoves])
   where
     drawHighlight (Pos f r) = 
         Translate (toScreenX f) (toScreenY r) $
         Color (makeColorI 100 100 100 200) $
         ThickCircle (squareSize / 2 - 5) 5 -- Серая рамка-круг внутри клетки
+
+    drawActivePiece (Pos f r) =
+        let s = squareSize / 2
+        in Translate (toScreenX f) (toScreenY r) $
+           Color (makeColorI 150 200 150 180) $ -- зеленый полупрозрачный фон
+           Polygon [(-s, -s), (s, -s), (s, s), (-s, s)]
 
 -- Рисует окно окончания игры
 drawGameOver :: GameState -> Picture
