@@ -6,15 +6,15 @@ import Graphics.Gloss.Interface.Pure.Game
 import Types
 import Board (isValidPos, getPiece, initGameState)
 import Rules (applyMove, allLegalMoves, isCheckmate, isDraw)
-import Render (windowSize, squareSize)
+import Render (windowWidth, windowHeight, squareSize)
 import Data.Maybe (listToMaybe)
 
 -- Перевод координат мыши в координаты доски
 screenToBoard :: (Float, Float) -> Pos
 screenToBoard (x, y) = Pos f r
   where
-    f = floor ((x + fromIntegral windowSize / 2) / squareSize)
-    r = floor ((y + fromIntegral windowSize / 2) / squareSize)
+    f = floor ((x + fromIntegral windowWidth / 2) / squareSize)
+    r = floor ((y + fromIntegral windowHeight / 2) / squareSize)
 
 -- Обработка событий экрана
 handleEvent :: Event -> GameState -> GameState

@@ -6,13 +6,13 @@ import Graphics.Gloss
 import Board (initGameState)
 import Types (GameState, Piece(..), PieceType(..))
 import qualified Types as T
-import Render (windowSize, drawGame)
+import Render (windowWidth, windowHeight, drawGame)
 import Events (handleEvent)
 
 -- \\-- Главная функция запуска приложения
 -- Окно приложения
 window :: Display
-window = InWindow "Haskell Chess 2026" (windowSize, windowSize) (50, 50)
+window = InWindow "Haskell Chess 2026" (windowWidth, windowHeight) (50, 50)
 
 -- Фон вокруг доски
 bgColor :: Color

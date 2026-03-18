@@ -1,5 +1,6 @@
 module Render
-    ( windowSize
+    ( windowWidth
+    , windowHeight
     , drawGame
     , squareSize
     ) where
@@ -17,9 +18,18 @@ import Rules (allLegalMoves, isCheckmate, isDraw, isCheck, findKing)
 squareSize :: Float
 squareSize = 100
 
--- Размер окна (8 клеток)
-windowSize :: Int
-windowSize = round (squareSize * 8)
+-- Размер шахматной доски
+boardSize :: Float
+boardSize = squareSize * 8
+
+topBarHeight :: Float
+topBarHeight = 35
+
+windowWidth :: Int
+windowWidth = round boardSize
+
+windowHeight :: Int
+windowHeight = round (boardSize + topBarHeight)
 
 -- Цвета клеток доски
 lightSquare :: Color
@@ -32,28 +42,24 @@ darkSquare = makeColorI 181 136 99 255
 -- \\-- Перевод координаты доски (0–7) в экранную координату Gloss
 -- Gloss: (0,0) — центр экрана
 toScreenX :: Int -> Float
-toScreenX f = fromIntegral f * squareSize - fromIntegral windowSize / 2 + squareSize / 2
+toScreenX f = fromIntegral f * squareSize - boardSize / 2 + squareSize / 2
 
 toScreenY :: Int -> Float
-toScreenY r = fromIntegral r * squareSize - fromIntegral windowSize / 2 + squareSize / 2
+toScreenY r = fromIntegral r * squareSize - boardSize / 2 + squareSize / 2 - topBarHeight / 2
 -- \\ --
 
 -- \\-- Главная функция, собирает всю сцену
 drawGame :: [(Piece, Picture)] -> GameState -> Picture
 drawGame imgs state = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs (board state), drawLabels, drawTurnIndicator state, drawPromotionMenu imgs state, drawGameOver state]
 
--- Индикатор текущего хода
+-- Индикатор текущего хода 
 drawTurnIndicator :: GameState -> Picture
 drawTurnIndicator state = 
     let turnText = if activePlayer state == T.White then "Turn: White" else "Turn: Black"
-        edge = fromIntegral windowSize / 2
-        bgWidth = 140
-        bgHeight = 35
-        xCenter = -edge + (bgWidth / 2) + 10 
-        yCenter = 0
+        barY = boardSize / 2 -- середина высоты для топ бара (относительно 0), верхняя граница окна: boardSize/2 + topBarHeight/2, низ топбара = boardSize/2 - topBarHeight/2
     in Pictures 
-       [ Translate xCenter yCenter $ Color (makeColorI 0 0 0 150) $ Polygon [(-bgWidth/2, -bgHeight/2), (bgWidth/2, -bgHeight/2), (bgWidth/2, bgHeight/2), (-bgWidth/2, bgHeight/2)]
-       , Translate (xCenter - 55) (yCenter - 5) $ Scale 0.15 0.15 $ Color white $ Text turnText
+       [ Translate 0 barY $ Color (makeColorI 40 40 40 255) $ Polygon [(-boardSize/2, -topBarHeight/2), (boardSize/2, -topBarHeight/2), (boardSize/2, topBarHeight/2), (-boardSize/2, topBarHeight/2)]
+       , Translate (-boardSize/2 + 20) (barY - 5) $ Scale 0.15 0.15 $ Color white $ Text turnText
        ]
 
 -- Подсветка короля, если он под шахом
@@ -121,15 +127,16 @@ drawLabels :: Picture
 drawLabels = Pictures (fileLbls ++ rankLbls)
   where
     lblColor = makeColorI 80 80 80 255
-    edge     = fromIntegral windowSize / 2
+    edgeX     = boardSize / 2
+    boardBottom = -boardSize / 2 - topBarHeight / 2
     
     offset   = 5
 
-    fileLbls = [Translate (toScreenX f - squareSize/2 + offset) (-edge + offset) $
+    fileLbls = [Translate (toScreenX f - squareSize/2 + offset) (boardBottom + offset) $
                 Scale 0.12 0.12 $ Color lblColor $ Text [fileChar f]
                | f <- [0..7]]
 
-    rankLbls = [Translate (-edge + offset) (toScreenY r + squareSize/2 - 15) $
+    rankLbls = [Translate (-edgeX + offset) (toScreenY r + squareSize/2 - 15) $
                 Scale 0.12 0.12 $ Color lblColor $ Text (show (r + 1))
                | r <- [0..7]]
 
@@ -168,12 +175,13 @@ drawGameOver state
 
     drawMessage msg = Pictures 
         [ -- Полупрозрачный фон поверх всей доски
-          Graphics.Gloss.Color (makeColorI 0 0 0 150) $ Polygon [(-w, -w), (w, -w), (w, w), (-w, w)]
+          Graphics.Gloss.Color (makeColorI 0 0 0 150) $ Polygon [(-w, -h), (w, -h), (w, h), (-w, h)]
           -- Основной текст результата
         , Translate (-150) 40 $ Scale 0.3 0.3 $ Graphics.Gloss.Color white $ Text msg
           -- Подсказка для рестарта
         , Translate (-120) (-40) $ Scale 0.15 0.15 $ Graphics.Gloss.Color (makeColorI 200 200 200 255) $ Text "Press R to Restart"
         ]
       where
-        w = fromIntegral windowSize / 2
--- \-- 
+        w = fromIntegral windowWidth / 2
+        h = fromIntegral windowHeight / 2
+-- \--
