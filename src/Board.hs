@@ -1,7 +1,6 @@
 module Board where
 
 import Types
-import Data.Vector (Vector)
 import qualified Data.Vector as V
 
 -- /--- Библиотека для работы с позицией на шахматной доске
@@ -21,40 +20,40 @@ indToPos ind = Pos (mod ind 8) (div ind 8)
 -- /--- Библиотека для работы с фигурами на доске
 -- Получение фигуры на доске по позиции. Возвращает Nothing, если позиция недействительна или клетка пуста
 getPiece :: Board -> Pos -> Maybe Piece
-getPiece b pos
+getPiece (Board b) pos
     | isValidPos pos = b V.! ind
     | otherwise = Nothing
     where ind = posToInd pos
 
 -- Установка содержимого клетки (фигуры или пустоты). Если позиция недействительна, возвращает неизмененную доску
 setPiece :: Board -> Pos -> Maybe Piece -> Board
-setPiece b pos piece
-    | isValidPos pos = b V.// [(ind, piece)]
-    | otherwise = b
+setPiece (Board b) pos piece
+    | isValidPos pos = Board (b V.// [(ind, piece)])
+    | otherwise = Board b
     where ind = posToInd pos
 
 -- Вспомогательная функция: поставить фигуру
 placePiece :: Board -> Pos -> Piece -> Board
-placePiece b pos piece = setPiece b pos (Just piece)
+placePiece (Board b) pos piece = setPiece (Board b) pos (Just piece)
 
 -- Вспомогательная функция: убрать фигуру
 removePiece :: Board -> Pos -> Board
-removePiece b pos = setPiece b pos Nothing
+removePiece (Board b) pos = setPiece (Board b) pos Nothing
 
 -- Перемещение фигуры на доске с posFrom на posTo. Клетка posFrom становится пустой
 movePiece :: Board -> Pos -> Pos -> Board
-movePiece b posFrom posTo = setPiece boardWithoutPiece posTo (getPiece b posFrom)
-    where boardWithoutPiece = setPiece b posFrom Nothing        
+movePiece (Board b) posFrom posTo = setPiece boardWithoutPiece posTo (getPiece (Board b) posFrom)
+    where boardWithoutPiece = setPiece (Board b) posFrom Nothing        
 -- \---
 
 -- /--- Библиотека для инициализации игры
 -- Пустая доска (64 значения Nothing)
 emptyBoard :: Board
-emptyBoard = V.replicate 64 Nothing
+emptyBoard = Board (V.replicate 64 Nothing)
 
 -- Инициализация доски с начальной расстановкой фигур
 initBoard :: Board
-initBoard = V.generate 64 initSquare
+initBoard = Board (V.generate 64 initSquare)
     where
         initSquare ind = case r of
             1 -> Just (Piece Pawn White) -- 2-я горизонталь (белые пешки)
