@@ -2,10 +2,7 @@ module Moves where
 
 import Types
 import Board
-import Data.Vector (Vector)
-import qualified Data.Vector as V
 import Data.Maybe (isNothing)
-import Data.Bool (Bool)
 
 -- /--- Вспомогательная библиотека для генерации ходов 
 -- Возможные смещения для Коня
@@ -34,11 +31,11 @@ queenDirs = rookDirs ++ bishopDirs
 stepMoves :: Board -> Pos -> Color -> [Offsets] -> [Pos]
 stepMoves b pos color offsets = filter isValidStep (map nextPos offsets)
     where
-        isValidStep piecePos = isValidPos piecePos && notOwnPiece piecePos
+        isValidStep pPos = isValidPos pPos && notOwnPiece pPos
 
-        notOwnPiece piecePos = case getPiece b piecePos of
+        notOwnPiece pPos = case getPiece b pPos of
             Nothing -> True
-            Just (Piece _ pieceColor) -> pieceColor /= color
+            Just (Piece _ pColor) -> pColor /= color
 
         nextPos (Offsets dx dy) = Pos (file pos + dx) (rank pos + dy)
 
@@ -49,7 +46,7 @@ slideMoves b pos color dirs = concatMap (slide pos) dirs
         slide curPos (Directions dx dy)
             | isValidPos nextPos = case getPiece b nextPos of
                 Nothing -> nextPos : slide nextPos (Directions dx dy)
-                Just (Piece _ pieceColor) -> [nextPos | pieceColor /= color]
+                Just (Piece _ pColor) -> [nextPos | pColor /= color]
             | otherwise = []
             where nextPos = Pos (file curPos + dx) (rank curPos + dy)
 
@@ -57,7 +54,7 @@ slideMoves b pos color dirs = concatMap (slide pos) dirs
 pawnMoves :: Board -> Pos -> Color -> [Pos]
 pawnMoves b (Pos f r) color = forwardMoves ++ filter captureMoves [Pos (f - 1) (r + dir), Pos (f + 1) (r + dir)]
     where
-        captureMoves piecePos = isValidPos piecePos && hasOpponentPiece piecePos
+        captureMoves pPos = isValidPos pPos && hasOpponentPiece pPos
         
         (dir, startRank) = case color of
             White -> (1, 1)
@@ -66,15 +63,15 @@ pawnMoves b (Pos f r) color = forwardMoves ++ filter captureMoves [Pos (f - 1) (
         forward1 = Pos f (r + dir)
         forward2 = Pos f (r + 2 * dir)
 
-        isPathClear piecePos = isValidPos piecePos && isNothing (getPiece b piecePos)
+        isPathClear pPos = isValidPos pPos && isNothing (getPiece b pPos)
 
         forwardMoves
             | isPathClear forward1 && (r == startRank && isPathClear forward2) = [forward1, forward2]
             | isPathClear forward1 = [forward1]
             | otherwise = []
         
-        hasOpponentPiece piecePos = case getPiece b piecePos of
-            Just (Piece _ pieceColor) -> pieceColor /= color
+        hasOpponentPiece pPos = case getPiece b pPos of
+            Just (Piece _ pColor) -> pColor /= color
             Nothing -> False
 
 -- Вспомогательная функция для генерации ходов взятия на проходе. Проверяет, находится ли цель взятия на проходе по диагонали от пешки
@@ -109,7 +106,7 @@ canCastleQSide Black = blackQueenSide
 castlingMoves :: GameState -> Color -> [Pos]
 castlingMoves gs color = castleKSide ++ castleQSide
     where
-        isClear file = isNothing (getPiece (board gs) (Pos file (homeRank color)))
+        isClear f = isNothing (getPiece (board gs) (Pos f (homeRank color)))
         
         castleKSide
             | canCastleKSide color (castlingRights gs) && isClear 5 && isClear 6 = [Pos 6 (homeRank color)]
@@ -123,7 +120,7 @@ castlingMoves gs color = castleKSide ++ castleQSide
 piecePossibleMoves :: GameState -> Pos -> [Move]
 piecePossibleMoves gs pos = case getPiece b pos of
     Nothing -> []
-    Just (Piece pieceType color) -> case pieceType of
+    Just (Piece pType color) -> case pType of
         Pawn -> concatMap (makePawnMove color) (pawnMoves b pos color ++ enPassantMoves gs pos color)
         Knight -> map makeMove (stepMoves b pos color knightOffsets)
         Bishop -> map makeMove (slideMoves b pos color bishopDirs)
@@ -147,7 +144,7 @@ piecePossibleMoves gs pos = case getPiece b pos of
 allPossibleMoves :: GameState -> [Move]
 allPossibleMoves gs = concatMap getMovesForPos [Pos f r | f <- [0..7], r <- [0..7]]
     where
-        getMovesForPos piecePos = case getPiece (board gs) piecePos of
-            Just (Piece _ pieceColor) | pieceColor == activePlayer gs -> piecePossibleMoves gs piecePos
+        getMovesForPos pPos = case getPiece (board gs) pPos of
+            Just (Piece _ pColor) | pColor == activePlayer gs -> piecePossibleMoves gs pPos
             _ -> []
 -- \---

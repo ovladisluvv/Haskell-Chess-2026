@@ -24,7 +24,7 @@ data Pos = Pos { file :: Int, -- Столбец на шахматной доск
                } deriving (Show, Eq, Ord)
 
 -- Шахматная доска, представленная в виде отображения позиций в фигуры
-type Board = Vector (Maybe Piece)
+newtype Board = Board (Vector (Maybe Piece)) deriving (Show, Eq)
 
 -- Ход в фигуры. Включает начальную и конечную позицию, информацию о том, в какую фигуру превратилась пешка, дошедшая до края доски (если это был ход пешкой)
 data Move = Move { moveFrom :: Pos,
