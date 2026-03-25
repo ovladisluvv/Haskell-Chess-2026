@@ -23,6 +23,7 @@ dependencies:
 - base >= 4.19.0.0 && < 5
 - vector
 - gloss
+- random
 
 ghc-options:
 - -Wall
