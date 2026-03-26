@@ -5,7 +5,7 @@ module Events
 import Graphics.Gloss.Interface.Pure.Game
 import Types
 import Board (isValidPos, getPiece, initGameState)
-import Rules (applyMove, allLegalMoves, isCheckmate, isDraw)
+import Rules (makeMove, allLegalMoves, isCheckmate, isDraw)
 import Render (windowWidth, windowHeight, squareSize)
 import Data.Maybe (listToMaybe)
 
@@ -44,7 +44,7 @@ handlePromotionClick (Pos f_click r_click) fromPos toPos@(Pos f_to r_to) gs =
             let legalMoves = allLegalMoves gs
                 matchedMove = listToMaybe [m | m <- legalMoves, moveFrom m == fromPos, moveTo m == toPos, movePromote m == Just pt]
             in case matchedMove of
-                Just move -> (applyMove gs move) { selectedPos = Nothing, promotionState = Nothing }
+                Just move -> (makeMove gs move) { selectedPos = Nothing, promotionState = Nothing }
                 Nothing -> gs { promotionState = Nothing, selectedPos = Nothing }
         Nothing -> gs { promotionState = Nothing, selectedPos = Nothing } -- Кликнули мимо меню - отменяем
 
@@ -70,5 +70,5 @@ handleSquareClick clickedPos gs = case selectedPos gs of
                     case getPiece (board gs) clickedPos of
                         Just (Piece _ playerColor) | playerColor == activePlayer gs -> gs { selectedPos = Just clickedPos }
                         _ -> gs { selectedPos = Nothing }
-                [move] -> (applyMove gs move) { selectedPos = Nothing } -- Обычный ход (один вариант)
+                [move] -> (makeMove gs move) { selectedPos = Nothing } -- Обычный ход (один вариант)
                 _ -> gs { promotionState = Just (selPos, clickedPos) } -- Несколько вариантов хода - значит это превращение пешки
