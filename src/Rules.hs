@@ -2,7 +2,7 @@ module Rules where
 
 import Types
 import Board
-import Moves (allPossibleMoves)
+import Moves
 
 --- /--- Библиотека для проверки правил шахматной игры
 -- Вспомотельная функция для применения хода. Увеличивает счетчик ходов после хода черных
@@ -15,14 +15,14 @@ pawnPushDir :: Color -> Int
 pawnPushDir White = 1
 pawnPushDir Black = -1
 
--- Применение хода к состоянию игры: обновление доски, смена активного игрока и увеличение счетчика ходов после хода черных
-applyMove :: GameState -> Move -> GameState
-applyMove gs move = gs { board = finalBoard,
+-- Применение хода к состоянию игры
+makeMove gs move = gs { board = finalBoard,
                          activePlayer = oppositeColor (activePlayer gs),
                          moveNumber = moveNumber gs + turnInc (activePlayer gs),
                          halfMoveCount = updatedHalfMoveCount,
                          enPassantTarget = newEnPassantTarget,
-                         castlingRights = updatedCastlingRights
+                         castlingRights = updatedCastlingRights,
+                         gameStory = gameStory gs ++ [newMoveRecord]
                        }
     where
         movedBoard
@@ -40,11 +40,11 @@ applyMove gs move = gs { board = finalBoard,
         enPassantedPawnPos = Pos (file (moveTo move)) (rank (moveFrom move))
 
         finalBoard = case movePromote move of
-            Just promotedPieceType -> setPiece boardAfterEp (moveTo move) (Just (Piece promotedPieceType (activePlayer gs)))
+            Just promotedPiece -> setPiece boardAfterEp (moveTo move) (Just (Piece promotedPiece (activePlayer gs)))
             Nothing -> boardAfterEp
 
         updatedHalfMoveCount
-            | isCapture || isPawnMove = 0
+            | isPawnMove || isCapture = 0
             | otherwise = halfMoveCount gs + 1
 
         isPawnMove = case getPiece (board gs) (moveFrom move) of
@@ -54,6 +54,8 @@ applyMove gs move = gs { board = finalBoard,
         isCapture = case getPiece (board gs) (moveTo move) of
             Just _ -> True
             Nothing -> False
+
+        isEpCapture = isPawnMove && Just (moveTo move) == enPassantTarget gs
 
         newEnPassantTarget
             | isPawnMove && abs (rank (moveTo move) - rank (moveFrom move)) == 2 = 
@@ -72,6 +74,71 @@ applyMove gs move = gs { board = finalBoard,
         keepBlackKingside = (moveFrom move) /= Pos 4 7 && (moveFrom move) /= Pos 7 7 && (moveTo move) /= Pos 7 7
         keepBlackQueenside = (moveFrom move) /= Pos 4 7 && (moveFrom move) /= Pos 0 7 && (moveTo move) /= Pos 0 7
 
+        curCapturedPiece
+            | isEpCapture = getPiece (board gs) enPassantedPawnPos
+            | otherwise = getPiece (board gs) (moveTo move)
+
+        newMoveRecord = MoveRecord { playedMove = move,
+                                     undoInfo = undoState
+                                   }
+
+        undoState = UndoInfo { capturedPiece = curCapturedPiece,
+                               prevHalfMoveCount = halfMoveCount gs,
+                               prevEnPassantTarget = enPassantTarget gs,
+                               prevCastlingRights = castlingRights gs
+                             }
+
+-- Отмена последнего хода с восстановлением предыдущего состояния игры
+unmakeMove :: GameState -> GameState
+unmakeMove gs
+    | null (gameStory gs) = gs -- Если история пуста, возвращаем текущее состояние
+    | otherwise = gs { board = prevBoard,
+                       activePlayer = prevPlayerColor,
+                       moveNumber = moveNumber gs - turnInc prevPlayerColor,
+                       halfMoveCount = prevHalfMoveCount toUndo,
+                       enPassantTarget = prevEnPassantTarget toUndo,
+                       castlingRights = prevCastlingRights toUndo,
+                       gameStory = take (length (gameStory gs) - 1) (gameStory gs)
+                     }
+    where
+        prevPlayerColor = oppositeColor (activePlayer gs)
+
+        toUndo = undoInfo (last (gameStory gs))
+
+        prevMove = playedMove (last (gameStory gs))
+
+        movedPiece = getPiece (board gs) (moveTo prevMove)
+
+        isPromotion = case movePromote prevMove of
+            Just _ -> True
+            Nothing -> False
+
+        isEp = movedPiece == Just (Piece Pawn prevPlayerColor) && Just (moveTo prevMove) == prevEnPassantTarget toUndo
+
+        isCastle = movedPiece == Just (Piece King prevPlayerColor) && abs (file (moveTo prevMove) - file (moveFrom prevMove)) == 2
+        
+        -- Двигаем фигуру обратно на место
+        boardAfterMoveBack = movePiece (board gs) (moveTo prevMove) (moveFrom prevMove)
+
+        -- Если было превращение, заменяем новую фигуру обратно на пешку
+        boardAfterDemotion 
+            | isPromotion = setPiece boardAfterMoveBack (moveFrom prevMove) (Just (Piece Pawn prevPlayerColor))
+            | otherwise = boardAfterMoveBack
+
+        -- Восстанавливаем съеденную фигуру, если она была
+        boardAfterRestoreCapture = case capturedPiece toUndo of
+            Nothing -> boardAfterDemotion
+            Just opponentPiece 
+                | isEp -> setPiece boardAfterDemotion (Pos (file (moveTo prevMove)) (rank (moveFrom prevMove))) (Just opponentPiece)
+                | otherwise -> setPiece boardAfterDemotion (moveTo prevMove) (Just opponentPiece)
+
+        -- Если была рокировка, возвращаем ладью на место
+        prevBoard 
+            | isCastle && file (moveTo prevMove) == 6 = movePiece boardAfterRestoreCapture (Pos 5 (rank (moveFrom prevMove))) (Pos 7 (rank (moveFrom prevMove))) -- Возврат короткой
+            | isCastle && file (moveTo prevMove) == 2 = movePiece boardAfterRestoreCapture (Pos 3 (rank (moveFrom prevMove))) (Pos 0 (rank (moveFrom prevMove))) -- Возврат длинной
+            | otherwise = boardAfterRestoreCapture
+
+-- Проверка, является ли ход рокировкой
 isCastling :: GameState -> Move -> Bool
 isCastling gs move = isKingMove && isLongMove
   where
@@ -112,13 +179,13 @@ findKing b color = head (filter isKing [Pos f r | f <- [0..7], r <- [0..7]])
 isCheck :: GameState -> Color -> Bool
 isCheck gs color = isSquareAttacked gs (findKing (board gs) color) color
 
--- Проверка легальности хода. Ход легален, если после его совершения король ходившего игрока не находится под шахом
+-- Проверка легальности хода. Ход легален, если после его совершения король ходившего игрока не находится под шахом и рокировка проведена по правилам
 isMoveLegal :: GameState -> Move -> Bool
 isMoveLegal gs move
     | isCastling gs move = not (isCheck gs (activePlayer gs)) && 
                            not (isSquareAttacked gs passedSquare (activePlayer gs)) && 
-                           not (isCheck (applyMove gs move) (activePlayer gs))
-    | otherwise = not (isCheck (applyMove gs move) (activePlayer gs))
+                           not (isCheck (makeMove gs move) (activePlayer gs))
+    | otherwise = not (isCheck (makeMove gs move) (activePlayer gs))
     where
         -- Клетка, которую перепрыгивает король
         passedSquare = Pos ((file (moveFrom move) + file (moveTo move)) `div` 2) (rank (moveFrom move))
@@ -162,4 +229,5 @@ isInsufficientMaterial gs = case filter notKing allPieces of
 -- Проверка на ничью по правилу 50 ходов
 isFiftyMoveRule :: GameState -> Bool
 isFiftyMoveRule gs = halfMoveCount gs >= 100
+   
 -- \---

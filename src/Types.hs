@@ -33,6 +33,7 @@ data Move = Move { moveFrom :: Pos,
                    movePromote :: Maybe PieceType -- Nothing, если ход не связан с превращением пешки, Just PieceType - тип фигуры, в которую превращается пешка
                  } deriving (Show, Eq)
 
+-- Права на рокировку для обеих сторон. Каждое поле указывает, разрешена ли соответствующая рокировка
 data CastlingRights = CastlingRights { whiteKingSide :: Bool,
                                        whiteQueenSide :: Bool,
                                        blackKingSide :: Bool,
@@ -46,25 +47,37 @@ data GameState = GameState { board :: Board,
                              halfMoveCount :: Int, -- Счетчик полуходов для правила 50 ходов
                              enPassantTarget :: Maybe Pos, -- Позиция, доступная для взятия на проходе, если таковая имеется
                              castlingRights :: CastlingRights, -- Права на рокировку для обеих сторон
+                             gameStory :: [MoveRecord],
                              selectedPos :: Maybe Pos, -- Позиция выбранной фигуры для хода, если есть
                              promotionState :: Maybe (Pos, Pos), -- Координаты (откуда, куда) для отрисовки меню превращения
                              botColor :: Maybe Color, -- Цвет фигуры бота
-                             botGen :: StdGen -- Генератор случайных чисел для бота
+                             botGen :: StdGen -- Генератор случайных чисел для случайных ходов бота
                            } deriving (Show)
 
 -- Переопределение функции сравнения для GameState, поскольку генератор случайных чисел не поддерживает сравнение на равенство
 instance Eq GameState where
-  (==) gs1 gs2 = board gs1 == board gs2 &&
-                 activePlayer gs1 == activePlayer gs2 &&
-                 enPassantTarget gs1 == enPassantTarget gs2 &&
-                 castlingRights gs1 == castlingRights gs2
+  gs1 == gs2 = board gs1 == board gs2 &&
+               activePlayer gs1 == activePlayer gs2 &&
+               enPassantTarget gs1 == enPassantTarget gs2
 
 -- Смещения. Необходимы для ходов Коня и Короля
 data Offsets = Offsets { fileOffset :: Int,
                          rankOffset :: Int
-                       }
+                       } deriving (Show, Eq)
 
 -- Направления движения. Необходимы для Слона, Ладьи и Ферзя
 data Directions = Directions { fileDirection :: Int,
                                rankDirection :: Int
-                             }
+                             } deriving (Show, Eq)
+
+-- Информация, необходимая для отмены хода
+data UndoInfo = UndoInfo { capturedPiece :: Maybe Piece,
+                           prevHalfMoveCount :: Int, 
+                           prevEnPassantTarget :: Maybe Pos,
+                           prevCastlingRights :: CastlingRights
+                         } deriving (Show, Eq)
+
+-- Запись о ходе, включая информацию для отмены
+data MoveRecord = MoveRecord { playedMove :: Move,
+                               undoInfo :: UndoInfo
+                             } deriving (Show, Eq)
