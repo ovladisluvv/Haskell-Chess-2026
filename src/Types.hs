@@ -1,6 +1,7 @@
 module Types where
 
 import Data.Vector (Vector)
+import System.Random (StdGen)
 
 -- Цвет шахматной фигуры: белый или черный
 data Color = White | Black deriving (Show, Eq)
@@ -46,8 +47,17 @@ data GameState = GameState { board :: Board,
                              enPassantTarget :: Maybe Pos, -- Позиция, доступная для взятия на проходе, если таковая имеется
                              castlingRights :: CastlingRights, -- Права на рокировку для обеих сторон
                              selectedPos :: Maybe Pos, -- Позиция выбранной фигуры для хода, если есть
-                             promotionState :: Maybe (Pos, Pos) -- Координаты (откуда, куда) для отрисовки меню превращения
-                           } deriving (Show, Eq)
+                             promotionState :: Maybe (Pos, Pos), -- Координаты (откуда, куда) для отрисовки меню превращения
+                             botColor :: Maybe Color, -- Цвет фигуры бота
+                             botGen :: StdGen -- Генератор случайных чисел для бота
+                           } deriving (Show)
+
+-- Переопределение функции сравнения для GameState, поскольку генератор случайных чисел не поддерживает сравнение на равенство
+instance Eq GameState where
+  (==) gs1 gs2 = board gs1 == board gs2 &&
+                 activePlayer gs1 == activePlayer gs2 &&
+                 enPassantTarget gs1 == enPassantTarget gs2 &&
+                 castlingRights gs1 == castlingRights gs2
 
 -- Смещения. Необходимы для ходов Коня и Короля
 data Offsets = Offsets { fileOffset :: Int,
