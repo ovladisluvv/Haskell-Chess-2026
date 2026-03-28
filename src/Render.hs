@@ -8,7 +8,7 @@ module Render
 import Graphics.Gloss
 import Data.Maybe (fromMaybe)
 
-import Types (Piece(..), PieceType(..), GameState(..), Board, Pos(..), Move(..), oppositeColor)
+import Types (Piece(..), PieceType(..), GameState(..), Board, Pos(..), Move(..), oppositeColor, MenuState(..))
 import qualified Types as T
 import Board (getPiece)    
 import Rules (allLegalMoves, isCheckmate, isDraw, isCheck, findKing)                    
@@ -50,16 +50,52 @@ toScreenY r = fromIntegral r * squareSize - boardSize / 2 + squareSize / 2 - top
 
 -- \\-- Главная функция, собирает всю сцену
 drawGame :: [(Piece, Picture)] -> GameState -> Picture
-drawGame imgs state = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs (board state), drawLabels, drawTurnIndicator state, drawPromotionMenu imgs state, drawGameOver state]
+drawGame imgs state
+    | menuState state == MainMenu = Pictures [drawBoard, drawPieces imgs state, drawMenu]
+    | menuState state == ColorMenu = Pictures [drawBoard, drawPieces imgs state, drawColorMenu]
+    | otherwise = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs state, drawLabels, drawTurnIndicator state, drawUndoButton, drawPromotionMenu imgs state, drawGameOver state]
+
+-- Главное меню (Выбор режима)
+drawMenu :: Picture
+drawMenu = Pictures [
+    Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
+    Translate (-180) 100 $ Scale 0.3 0.3 $ Color white $ Text "Select Game Mode",
+    Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
+    Translate (-50) (-10) $ Scale 0.25 0.25 $ Color white $ Text "1: PvP",
+    Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
+    Translate (-50) (-90) $ Scale 0.25 0.25 $ Color white $ Text "2: PvB"
+  ]
+
+-- Меню выбора цвета (Выбор цвета игрока против бота)
+drawColorMenu :: Picture
+drawColorMenu = Pictures [
+    Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
+    Translate (-160) 100 $ Scale 0.3 0.3 $ Color white $ Text "Select Your Color",
+    Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
+    Translate (-80) (-10) $ Scale 0.2 0.2 $ Color white $ Text "1: White",
+    Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
+    Translate (-80) (-90) $ Scale 0.2 0.2 $ Color white $ Text "2: Black"
+  ]
+
+-- Кнопка отмены хода
+drawUndoButton :: Picture
+drawUndoButton =
+    let barY = boardSize / 2
+        undoX = boardSize / 2 - 60
+    in Pictures [
+        Translate undoX barY $ Color (makeColorI 80 80 80 255) $ Polygon [(-50, -12), (50, -12), (50, 12), (-50, 12)],
+        Translate (undoX - 45) (barY - 5) $ Scale 0.12 0.12 $ Color white $ Text "Undo(Z)"
+    ]
 
 -- Индикатор текущего хода 
 drawTurnIndicator :: GameState -> Picture
 drawTurnIndicator state = 
     let turnText = if activePlayer state == T.White then "Turn: White" else "Turn: Black"
+        barText = turnText ++ " | Move: " ++ show ((moveNumber state + 1) `div` 2)
         barY = boardSize / 2 -- середина высоты для топ бара (относительно 0), верхняя граница окна: boardSize/2 + topBarHeight/2, низ топбара = boardSize/2 - topBarHeight/2
     in Pictures 
        [ Translate 0 barY $ Color (makeColorI 40 40 40 255) $ Polygon [(-boardSize/2, -topBarHeight/2), (boardSize/2, -topBarHeight/2), (boardSize/2, topBarHeight/2), (-boardSize/2, topBarHeight/2)]
-       , Translate (-boardSize/2 + 20) (barY - 5) $ Scale 0.15 0.15 $ Color white $ Text turnText
+       , Translate (-boardSize/2 + 20) (barY - 5) $ Scale 0.15 0.15 $ Color white $ Text barText
        ]
 
 -- Подсветка короля, если он под шахом
@@ -111,12 +147,17 @@ drawBoard = Pictures [drawSquare f r | f <- [0..7], r <- [0..7]]
       | otherwise    = lightSquare
 
 -- Рисует все фигуры на доске
-drawPieces :: [(Piece, Picture)] -> Board -> Picture
-drawPieces imgs b = Pictures [drawAt f r | f <- [0..7], r <- [0..7]]
+drawPieces :: [(Piece, Picture)] -> GameState -> Picture
+drawPieces imgs state = Pictures [drawAt f r | f <- [0..7], r <- [0..7]]
   where
+    b = board state
     drawAt f r = case getPiece b (Pos f r) of
         Nothing -> Blank
-        Just p  -> Translate (toScreenX f) (toScreenY r) (renderPiece imgs p)
+        Just p  -> Translate (toScreenX f) (toScreenY r) (renderPieceRotated p)
+
+    renderPieceRotated p
+        | isCheckmate state && p == Piece King (activePlayer state) = Rotate 90 (renderPiece imgs p)
+        | otherwise = renderPiece imgs p
 
 -- Рисует одну фигуру
 renderPiece :: [(Piece, Picture)] -> Piece -> Picture
@@ -178,7 +219,7 @@ drawGameOver state
           Graphics.Gloss.Color (makeColorI 0 0 0 150) $ Polygon [(-w, -h), (w, -h), (w, h), (-w, h)]
           -- Основной текст результата
         , Translate (-150) 40 $ Scale 0.3 0.3 $ Graphics.Gloss.Color white $ Text msg
-          -- Подсказка для рестарта
+        -- Подсказка для рестарта
         , Translate (-120) (-40) $ Scale 0.15 0.15 $ Graphics.Gloss.Color (makeColorI 200 200 200 255) $ Text "Press R to Restart"
         ]
       where

@@ -5,7 +5,7 @@ module Events
 import Graphics.Gloss.Interface.Pure.Game
 import Types
 import Board (isValidPos, getPiece, initGameState)
-import Rules (makeMove, allLegalMoves, isCheckmate, isDraw)
+import Rules (makeMove, allLegalMoves, isCheckmate, isDraw, unmakeMove)
 import Render (windowWidth, windowHeight, squareSize)
 import Data.Maybe (listToMaybe)
 
@@ -18,16 +18,43 @@ screenToBoard (x, y) = Pos f r
 
 -- Обработка событий экрана
 handleEvent :: Event -> GameState -> GameState
--- Перезапуск игры по нажатию клавиши R
+-- Перезапуск игры по нажатию клавиши R или К (русская)
 handleEvent (EventKey (Char 'r') Down _ _) _ = initGameState
 handleEvent (EventKey (Char 'R') Down _ _) _ = initGameState
+handleEvent (EventKey (Char 'к') Down _ _) _ = initGameState
+handleEvent (EventKey (Char 'К') Down _ _) _ = initGameState
+
+-- Кнопка возврата хода по нажатию клавиши Z или Я (русская)
+handleEvent (EventKey (Char 'z') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
+handleEvent (EventKey (Char 'Z') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
+handleEvent (EventKey (Char 'я') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
+handleEvent (EventKey (Char 'Я') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
+
+-- Выбор режима игры
+handleEvent (EventKey (Char '1') Down _ _) gs | menuState gs == MainMenu = gs { menuState = Hidden, botColor = Nothing }
+handleEvent (EventKey (Char '2') Down _ _) gs | menuState gs == MainMenu = gs { menuState = ColorMenu }
+handleEvent (EventKey (Char '1') Down _ _) gs | menuState gs == ColorMenu = gs { menuState = Hidden, botColor = Just Black }
+handleEvent (EventKey (Char '2') Down _ _) gs | menuState gs == ColorMenu = gs { menuState = Hidden, botColor = Just White }
+
 -- Клик мыши работает только если игра продолжается
-handleEvent (EventKey (MouseButton LeftButton) Down _ mousePos) gs 
-    | not (isCheckmate gs || isDraw gs) = 
-        let pos = screenToBoard mousePos
-        in case promotionState gs of
-            Just (fromPos, toPos) -> handlePromotionClick pos fromPos toPos gs
-            Nothing -> if isValidPos pos then handleSquareClick pos gs else gs
+handleEvent (EventKey (MouseButton LeftButton) Down _ (x, y)) gs 
+    | menuState gs == MainMenu =
+        if x >= -100 && x <= 100 && y >= -30 && y <= 30 then gs { menuState = Hidden, botColor = Nothing }
+        else if x >= -100 && x <= 100 && y >= -110 && y <= -50 then gs { menuState = ColorMenu }
+        else gs
+    | menuState gs == ColorMenu =
+        if x >= -100 && x <= 100 && y >= -30 && y <= 30 then gs { menuState = Hidden, botColor = Just Black }
+        else if x >= -100 && x <= 100 && y >= -110 && y <= -50 then gs { menuState = Hidden, botColor = Just White }
+        else gs
+    | otherwise = 
+        let undoBox = x >= 290 && x <= 390 && y >= 385 && y <= 415
+        in if undoBox then unmakeMove gs
+           else if not (isCheckmate gs || isDraw gs) then
+               let pos = screenToBoard (x, y)
+               in case promotionState gs of
+                   Just (fromPos, toPos) -> handlePromotionClick pos fromPos toPos gs
+                   Nothing -> if isValidPos pos then handleSquareClick pos gs else gs
+           else gs
 handleEvent _ gs = gs
 
 -- Логика выбора из меню превращения

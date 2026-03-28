@@ -85,6 +85,7 @@ initGameState = GameState { board = initBoard,
                             selectedPos = Nothing,
                             promotionState = Nothing,
                             botColor = Nothing,
-                            botGen = mkStdGen 67
+                            botGen = mkStdGen 67,
+                            menuState = MainMenu
                           }
 -- \---

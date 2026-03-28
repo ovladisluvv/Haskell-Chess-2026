@@ -4,12 +4,13 @@ module Lib
 
 import Graphics.Gloss 
 import Board (initGameState)
-import Types (GameState, Piece(..), PieceType(..))
+import Types (GameState(..), Piece(..), PieceType(..))
 import qualified Types as T
 import Render (windowWidth, windowHeight, drawGame)
 import Events (handleEvent)
+import Bot (isBotTurn, makeBotMove)
 
--- \\-- Главная функция запуска приложения
+-- Главная функция запуска приложения
 -- Окно приложения
 window :: Display
 window = InWindow "Haskell Chess 2026" (windowWidth, windowHeight) (50, 50)
@@ -22,11 +23,13 @@ bgColor = makeColorI 50 50 50 255
 fps :: Int
 fps = 30
 
--- Шаг по времени (не нужен без таймера)
+-- Шаг по времени
 update :: Float -> GameState -> GameState
-update _ state = state
+update _ state
+    -- Если сейчас ход бота, делаем ход сразу
+    | isBotTurn state = makeBotMove state
+    | otherwise = state
 
--- Загружаем спрайты
 -- Загружаем спрайты
 loadImages :: IO [(Piece, Picture)]
 loadImages = do
@@ -51,8 +54,8 @@ loadImages = do
         (Piece Rook T.White, wrPic),   (Piece Rook T.Black, brPic),
         (Piece Queen T.White, wqPic),  (Piece Queen T.Black, bqPic) 
       ]
--- \\-- Запуск
 
+-- Запуск
 run :: IO ()
 run = do
     images <- loadImages

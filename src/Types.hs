@@ -51,8 +51,11 @@ data GameState = GameState { board :: Board,
                              selectedPos :: Maybe Pos, -- Позиция выбранной фигуры для хода, если есть
                              promotionState :: Maybe (Pos, Pos), -- Координаты (откуда, куда) для отрисовки меню превращения
                              botColor :: Maybe Color, -- Цвет фигуры бота
-                             botGen :: StdGen -- Генератор случайных чисел для случайных ходов бота
+                             botGen :: StdGen, -- Генератор случайных чисел для случайных ходов бота
+                             menuState :: MenuState -- Состояние меню выбора режима
                            } deriving (Show)
+
+data MenuState = MainMenu | ColorMenu | Hidden deriving (Show, Eq)
 
 -- Переопределение функции сравнения для GameState, поскольку генератор случайных чисел не поддерживает сравнение на равенство
 instance Eq GameState where
