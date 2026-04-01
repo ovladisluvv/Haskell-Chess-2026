@@ -59,24 +59,24 @@ drawGame imgs  state
 drawMenu :: Picture
 drawMenu  = Pictures [
     Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
-    Translate (-180) 100 $ scaledText 0.6 "Select Game Mode",
+    Translate (-180) 100 $ Color white $ scaledText 0.6 "Select Game Mode",
     Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-50) (-10) $ scaledText 0.4 "1: PvP",
+    Translate (-50) (-10) $ Color white $ scaledText 0.4 "1: PvP",
     Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-50) (-90) $ scaledText 0.4 "2: PvE"
+    Translate (-50) (-90) $ Color white $ scaledText 0.4 "2: PvE"
   ]
 
 -- Меню выбора цвета (Выбор цвета игрока против бота)
 drawColorMenu :: Picture
 drawColorMenu  = Pictures [
     Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
-    Translate (-160) 100 $ scaledText 0.6 "Select Your Color",
+    Translate (-160) 100 $ Color white $ scaledText 0.6 "Select Your Color",
     Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-10) $ scaledText 0.4 "1: White",
+    Translate (-80) (-10) $ Color white $ scaledText 0.4 "1: White",
     Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-90) $ scaledText 0.4 "2: Black",
+    Translate (-80) (-90) $ Color white $ scaledText 0.4 "2: Black",
     Translate 0 (-160) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-170) $ scaledText 0.4 "3: Back"
+    Translate (-80) (-170) $ Color white $ scaledText 0.4 "3: Back"
   ]
 
 -- Кнопка отмены хода и выхода
@@ -87,9 +87,9 @@ drawUndoMenuButton  =
         menuX = boardSize / 2 - 180
     in Pictures [
         Translate undoX barY $ Color (makeColorI 80 80 80 255) $ Polygon [(-50, -12), (50, -12), (50, 12), (-50, 12)],
-        Translate (undoX - 45) (barY - 5) $ scaledText 0.3 "Undo (Z)",
+        Translate (undoX - 45) (barY - 5) $ Color white $ scaledText 0.3 "Undo (Z)",
         Translate menuX barY $ Color (makeColorI 80 80 80 255) $ Polygon [(-50, -12), (50, -12), (50, 12), (-50, 12)],
-        Translate (menuX - 45) (barY - 5) $ scaledText 0.3 "Menu (M)"
+        Translate (menuX - 45) (barY - 5) $ Color white $ scaledText 0.3 "Menu (M)"
     ]
 
 formatPos :: Pos -> String
