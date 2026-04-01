@@ -12,7 +12,7 @@ oppositeColor White = Black
 oppositeColor Black = White
 
 -- Тип шахматной фигуры: пешка, конь, слон, ладья, ферзь или король
-data PieceType = Pawn | Knight | Bishop | Rook | Queen | King deriving (Show, Eq)
+data PieceType = Pawn | Knight | Bishop | Rook | Queen | King deriving (Show, Eq, Ord)
 
 -- Шахматная фигура. Включает тип и цвет
 data Piece = Piece { pieceType :: PieceType, 
@@ -31,7 +31,7 @@ newtype Board = Board (Vector (Maybe Piece)) deriving (Show, Eq)
 data Move = Move { moveFrom :: Pos,
                    moveTo :: Pos,
                    movePromote :: Maybe PieceType -- Nothing, если ход не связан с превращением пешки, Just PieceType - тип фигуры, в которую превращается пешка
-                 } deriving (Show, Eq)
+                 } deriving (Show, Eq, Ord)
 
 -- Права на рокировку для обеих сторон. Каждое поле указывает, разрешена ли соответствующая рокировка
 data CastlingRights = CastlingRights { whiteKingSide :: Bool,
