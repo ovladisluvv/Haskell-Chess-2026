@@ -88,6 +88,8 @@ initGameState = GameState { board = initBoard,
                             botColor = Nothing,
                             botGen = mkStdGen 67,
                             menuState = MainMenu,
-                            botTimer = 0.5
+                            botTimer = 0.5,
+                            deadWhite = [],
+                            deadBlack = []
                           }
 -- \---

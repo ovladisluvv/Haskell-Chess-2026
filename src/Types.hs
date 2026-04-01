@@ -53,7 +53,9 @@ data GameState = GameState { board :: Board,
                              botColor :: Maybe Color, -- Цвет фигуры бота
                              botGen :: StdGen, -- Генератор случайных чисел для случайных ходов бота
                              menuState :: MenuState, -- Состояние меню выбора режима
-                             botTimer :: Float -- Задержка бота в секундах
+                             botTimer :: Float, -- Задержка бота в секундах
+                             deadWhite :: [Piece], -- Взятые белые фигуры
+                             deadBlack :: [Piece] -- Взятые черные фигуры
                            } deriving (Show)
 
 -- Состояние меню выбора режима: главное меню, меню выбора цвета, меню скрыто

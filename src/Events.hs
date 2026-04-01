@@ -14,7 +14,9 @@ screenToBoard :: (Float, Float) -> Pos
 screenToBoard (x, y) = Pos f r
   where
     f = floor ((x + fromIntegral windowWidth / 2) / squareSize)
-    r = floor ((y + fromIntegral windowHeight / 2) / squareSize)
+    -- Мы вычитаем смещение доски по вертикали. Поскольку окно теперь больше доски,
+    -- boardSize совпадает с windowWidth, и доска центрирована по Y.
+    r = floor ((y + fromIntegral windowWidth / 2) / squareSize)
 
 -- Обработка событий экрана
 resetGame :: GameState -> GameState
@@ -61,8 +63,8 @@ handleEvent (EventKey (MouseButton LeftButton) Down _ (x, y)) gs
         else if x >= -100 && x <= 100 && y >= -190 && y <= -130 then gs { menuState = MainMenu }
         else gs
     | otherwise = 
-        let undoBox = x >= 280 && x <= 400 && y >= 390 && y <= 430
-            menuBox = x >= 160 && x <= 280 && y >= 390 && y <= 430
+        let undoBox = x >= 280 && x <= 400 && y >= 445 && y <= 485
+            menuBox = x >= 160 && x <= 280 && y >= 445 && y <= 485
         in if undoBox then smartUndo gs
            else if menuBox then initGameState
            else if not (isCheckmate gs || isDraw gs) then

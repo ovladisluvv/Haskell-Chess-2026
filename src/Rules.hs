@@ -24,9 +24,18 @@ makeMove gs move = gs { board = finalBoard,
                          enPassantTarget = newEnPassantTarget,
                          castlingRights = updatedCastlingRights,
                          gameStory = gameStory gs ++ [newMoveRecord],
-                         botTimer = 0.5
+                         botTimer = 0.5,
+                         deadWhite = updatedDeadWhite,
+                         deadBlack = updatedDeadBlack
                        }
     where
+        updatedDeadWhite = case curCapturedPiece of
+            Just p@(Piece _ White) -> p : deadWhite gs
+            _ -> deadWhite gs
+            
+        updatedDeadBlack = case curCapturedPiece of
+            Just p@(Piece _ Black) -> p : deadBlack gs
+            _ -> deadBlack gs
         movedBoard
             | isCastling gs move = movePiece (movePiece (board gs) (moveFrom move) (moveTo move)) rookFrom rookTo
             | otherwise = movePiece (board gs) (moveFrom move) (moveTo move)
@@ -102,9 +111,18 @@ unmakeMove gs
                        enPassantTarget = prevEnPassantTarget toUndo,
                        castlingRights = prevCastlingRights toUndo,
                        gameStory = take (length (gameStory gs) - 1) (gameStory gs),
-                       botTimer = 0.5
+                       botTimer = 0.5,
+                       deadWhite = restoredDeadWhite,
+                       deadBlack = restoredDeadBlack
                      }
     where
+        restoredDeadWhite = case capturedPiece toUndo of
+            Just (Piece _ White) -> if null (deadWhite gs) then [] else tail (deadWhite gs)
+            _ -> deadWhite gs
+            
+        restoredDeadBlack = case capturedPiece toUndo of
+            Just (Piece _ Black) -> if null (deadBlack gs) then [] else tail (deadBlack gs)
+            _ -> deadBlack gs
         prevPlayerColor = oppositeColor (activePlayer gs)
 
         toUndo = undoInfo (last (gameStory gs))

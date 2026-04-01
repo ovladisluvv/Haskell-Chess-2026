@@ -23,13 +23,16 @@ boardSize :: Float
 boardSize = squareSize * 8
 
 topBarHeight :: Float
-topBarHeight = 80
+topBarHeight = 100
+
+bottomBarHeight :: Float
+bottomBarHeight = 100
 
 windowWidth :: Int
 windowWidth = round boardSize
 
 windowHeight :: Int
-windowHeight = round (boardSize + topBarHeight)
+windowHeight = round (boardSize + topBarHeight + bottomBarHeight)
 
 -- Цвета клеток доски
 lightSquare :: Color
@@ -45,15 +48,53 @@ toScreenX :: Int -> Float
 toScreenX f = fromIntegral f * squareSize - boardSize / 2 + squareSize / 2
 
 toScreenY :: Int -> Float
-toScreenY r = fromIntegral r * squareSize - boardSize / 2 + squareSize / 2 - topBarHeight / 2
+toScreenY r = fromIntegral r * squareSize - boardSize / 2 + squareSize / 2 - topBarHeight / 2 + bottomBarHeight / 2
 -- \\ --
 
 -- \\-- Главная функция, собирает всю сцену
+
+drawCaptured :: [(Piece, Picture)] -> GameState -> Picture
+drawCaptured imgs state = Pictures [whiteGroup, blackGroup]
+  where
+    -- White score: calculate difference in material
+    pieceValue pType = case pType of
+        Pawn -> 1; Knight -> 3; Bishop -> 3; Rook -> 5; Queen -> 9; King -> 0
+        
+    pieceOrder p = case pieceType p of
+        Queen -> 5; Rook -> 4; Bishop -> 3; Knight -> 2; Pawn -> 1; King -> 0
+        
+    sortPieces [] = []
+    sortPieces (p:ps) = sortPieces [x | x <- ps, pieceOrder x >= pieceOrder p] 
+                     ++ [p] 
+                     ++ sortPieces [x | x <- ps, pieceOrder x < pieceOrder p]
+    
+    sortedWhite = sortPieces (deadWhite state)
+    sortedBlack = sortPieces (deadBlack state)
+    
+    deadWhiteVal = sum $ map (pieceValue . pieceType) sortedWhite
+    deadBlackVal = sum $ map (pieceValue . pieceType) sortedBlack
+    
+    whiteAdvantage = deadBlackVal - deadWhiteVal
+    blackAdvantage = deadWhiteVal - deadBlackVal
+    
+    -- Draw dead white pieces (captured by black) in the right side of the upper part of the bottom bar
+    deadWhitePics = [Translate (-fromIntegral i * 45) 0 $ Scale 0.30 0.30 (renderPiece imgs p) | (i, p) <- zip [0..] sortedWhite]
+    whiteGroup = Translate (boardSize/2 - 25) (-boardSize/2 - bottomBarHeight/2 + 20) $ Pictures $ 
+                 reverse deadWhitePics ++ 
+                 (if blackAdvantage > 0 then [Translate (-10) (-35) $ Color white $ scaledText 0.3 ("+" ++ show blackAdvantage)] else [])
+
+    -- Draw dead black pieces in the left side of the lower part of the bottom bar
+    deadBlackPics = [Translate (fromIntegral i * 45) 0 $ Scale 0.30 0.30 (renderPiece imgs p) | (i, p) <- zip [0..] sortedBlack]
+    blackGroup = Translate (-boardSize/2 + 25) (-boardSize/2 - bottomBarHeight/2 - 20) $ Pictures $ 
+                 reverse deadBlackPics ++ 
+                 (if whiteAdvantage > 0 then [Translate (-10) 35 $ Color white $ scaledText 0.3 ("+" ++ show whiteAdvantage)] else [])
+
 drawGame :: [(Piece, Picture)] -> GameState -> Picture
 drawGame imgs  state
     | menuState state == MainMenu = Pictures [drawBoard, drawPieces imgs state, drawMenu]
     | menuState state == ColorMenu = Pictures [drawBoard, drawPieces imgs state, drawColorMenu]
-    | otherwise = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs state, drawLabels, drawTurnIndicator  state, drawUndoMenuButton, drawPromotionMenu imgs state, drawGameOver  state]
+    | otherwise = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs state, drawLabels, drawTurnIndicator state, drawCaptured imgs state, drawUndoMenuButton, drawPromotionMenu imgs state, drawGameOver state]
+
 
 -- Главное меню (Выбор режима)
 drawMenu :: Picture
@@ -82,7 +123,7 @@ drawColorMenu  = Pictures [
 -- Кнопка отмены хода и выхода
 drawUndoMenuButton :: Picture
 drawUndoMenuButton  =
-    let barY = boardSize / 2 + 10 -- Поднимем повыше панель
+    let barY = boardSize / 2 + topBarHeight / 2 + 15 -- Поднимем повыше панель
         undoX = boardSize / 2 - 60
         menuX = boardSize / 2 - 180
     in Pictures [
@@ -110,7 +151,7 @@ drawTurnIndicator  state =
     let turnText = if activePlayer state == T.White then "Turn: White" else "Turn: Black"
         barText = turnText ++ " | Move: " ++ show (moveNumber state)
         histText = "History: " ++ formatHistory (gameStory state)
-        barY = boardSize / 2 -- середина высоты для топ бара (относительно 0), верхняя граница окна: boardSize/2 + topBarHeight/2, низ топбара = boardSize/2 - topBarHeight/2
+        barY = boardSize / 2 + topBarHeight / 2
     in Pictures 
        [ Translate 0 barY $ Color (makeColorI 40 40 40 255) $ Polygon [(-boardSize/2, -topBarHeight/2), (boardSize/2, -topBarHeight/2), (boardSize/2, topBarHeight/2), (-boardSize/2, topBarHeight/2)]
        , Translate (-boardSize/2 + 20) (barY + 10) $ Color white $ scaledText 0.35 barText
@@ -188,7 +229,7 @@ drawLabels  = Pictures (fileLbls ++ rankLbls)
   where
     lblColor = makeColorI 80 80 80 255
     edgeX     = boardSize / 2
-    boardBottom = -boardSize / 2 - topBarHeight / 2
+    boardBottom = -boardSize / 2 - topBarHeight / 2 + bottomBarHeight / 2
     
     offset   = 5
 
