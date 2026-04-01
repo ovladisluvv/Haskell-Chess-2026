@@ -8,7 +8,7 @@ module Render
 import Graphics.Gloss
 import Data.Maybe (fromMaybe)
 
-import Types (Piece(..), PieceType(..), GameState(..), Board, Pos(..), Move(..), oppositeColor, MenuState(..))
+import Types (Piece(..), PieceType(..), GameState(..), MoveRecord(..), Board, Pos(..), Move(..), oppositeColor, MenuState(..))
 import qualified Types as T
 import Board (getPiece)    
 import Rules (allLegalMoves, isCheckmate, isDraw, isCheck, findKing)                    
@@ -23,7 +23,7 @@ boardSize :: Float
 boardSize = squareSize * 8
 
 topBarHeight :: Float
-topBarHeight = 35
+topBarHeight = 80
 
 windowWidth :: Int
 windowWidth = round boardSize
@@ -50,52 +50,71 @@ toScreenY r = fromIntegral r * squareSize - boardSize / 2 + squareSize / 2 - top
 
 -- \\-- Главная функция, собирает всю сцену
 drawGame :: [(Piece, Picture)] -> GameState -> Picture
-drawGame imgs state
+drawGame imgs  state
     | menuState state == MainMenu = Pictures [drawBoard, drawPieces imgs state, drawMenu]
     | menuState state == ColorMenu = Pictures [drawBoard, drawPieces imgs state, drawColorMenu]
-    | otherwise = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs state, drawLabels, drawTurnIndicator state, drawUndoButton, drawPromotionMenu imgs state, drawGameOver state]
+    | otherwise = Pictures [drawBoard, drawCheckHighlight state, drawHighlights state, drawPieces imgs state, drawLabels, drawTurnIndicator  state, drawUndoMenuButton, drawPromotionMenu imgs state, drawGameOver  state]
 
 -- Главное меню (Выбор режима)
 drawMenu :: Picture
-drawMenu = Pictures [
+drawMenu  = Pictures [
     Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
-    Translate (-180) 100 $ Scale 0.3 0.3 $ Color white $ Text "Select Game Mode",
+    Translate (-180) 100 $ boldText 0.6 "Select Game Mode",
     Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-50) (-10) $ Scale 0.25 0.25 $ Color white $ Text "1: PvP",
+    Translate (-50) (-10) $ boldText 0.4 "1: PvP",
     Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-50) (-90) $ Scale 0.25 0.25 $ Color white $ Text "2: PvB"
+    Translate (-50) (-90) $ boldText 0.4 "2: PvE"
   ]
 
 -- Меню выбора цвета (Выбор цвета игрока против бота)
 drawColorMenu :: Picture
-drawColorMenu = Pictures [
+drawColorMenu  = Pictures [
     Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
-    Translate (-160) 100 $ Scale 0.3 0.3 $ Color white $ Text "Select Your Color",
+    Translate (-160) 100 $ boldText 0.6 "Select Your Color",
     Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-10) $ Scale 0.2 0.2 $ Color white $ Text "1: White",
+    Translate (-80) (-10) $ boldText 0.4 "1: White",
     Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-90) $ Scale 0.2 0.2 $ Color white $ Text "2: Black"
+    Translate (-80) (-90) $ boldText 0.4 "2: Black",
+    Translate 0 (-160) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
+    Translate (-80) (-170) $ boldText 0.4 "3: Back"
   ]
 
--- Кнопка отмены хода
-drawUndoButton :: Picture
-drawUndoButton =
-    let barY = boardSize / 2
+-- Кнопка отмены хода и выхода
+drawUndoMenuButton :: Picture
+drawUndoMenuButton  =
+    let barY = boardSize / 2 + 10 -- Поднимем повыше панель
         undoX = boardSize / 2 - 60
+        menuX = boardSize / 2 - 180
     in Pictures [
         Translate undoX barY $ Color (makeColorI 80 80 80 255) $ Polygon [(-50, -12), (50, -12), (50, 12), (-50, 12)],
-        Translate (undoX - 45) (barY - 5) $ Scale 0.12 0.12 $ Color white $ Text "Undo(Z)"
+        Translate (undoX - 45) (barY - 5) $ boldText 0.3 "Undo (Z)",
+        Translate menuX barY $ Color (makeColorI 80 80 80 255) $ Polygon [(-50, -12), (50, -12), (50, 12), (-50, 12)],
+        Translate (menuX - 45) (barY - 5) $ boldText 0.3 "Menu (M)"
     ]
+
+formatPos :: Pos -> String
+formatPos (Pos f r) = [toEnum (fromEnum 'a' + f), toEnum (fromEnum '1' + r)]
+
+formatMove :: Move -> String
+formatMove m = formatPos (moveFrom m) ++ "-" ++ formatPos (moveTo m)
+
+formatHistory :: [MoveRecord] -> String
+formatHistory history = 
+    let maxDisplay = 5
+        recent = drop (max 0 (length history - maxDisplay)) history
+    in unwords [formatMove (playedMove m) | m <- recent]
 
 -- Индикатор текущего хода 
 drawTurnIndicator :: GameState -> Picture
-drawTurnIndicator state = 
+drawTurnIndicator  state = 
     let turnText = if activePlayer state == T.White then "Turn: White" else "Turn: Black"
-        barText = turnText ++ " | Move: " ++ show ((moveNumber state + 1) `div` 2)
+        barText = turnText ++ " | Move: " ++ show (moveNumber state)
+        histText = "History: " ++ formatHistory (gameStory state)
         barY = boardSize / 2 -- середина высоты для топ бара (относительно 0), верхняя граница окна: boardSize/2 + topBarHeight/2, низ топбара = boardSize/2 - topBarHeight/2
     in Pictures 
        [ Translate 0 barY $ Color (makeColorI 40 40 40 255) $ Polygon [(-boardSize/2, -topBarHeight/2), (boardSize/2, -topBarHeight/2), (boardSize/2, topBarHeight/2), (-boardSize/2, topBarHeight/2)]
-       , Translate (-boardSize/2 + 20) (barY - 5) $ Scale 0.15 0.15 $ Color white $ Text barText
+       , Translate (-boardSize/2 + 20) (barY + 10) $ Color white $ boldText 0.35 barText
+       , Translate (-boardSize/2 + 20) (barY - 15) $ Color (makeColorI 200 200 200 255) $ boldText 0.3 histText
        ]
 
 -- Подсветка короля, если он под шахом
@@ -165,7 +184,7 @@ renderPiece imgs piece = fromMaybe Blank (lookup piece imgs)
 
 -- Рисует подписи координат (a–h, 1–8)
 drawLabels :: Picture
-drawLabels = Pictures (fileLbls ++ rankLbls)
+drawLabels  = Pictures (fileLbls ++ rankLbls)
   where
     lblColor = makeColorI 80 80 80 255
     edgeX     = boardSize / 2
@@ -174,11 +193,11 @@ drawLabels = Pictures (fileLbls ++ rankLbls)
     offset   = 5
 
     fileLbls = [Translate (toScreenX f - squareSize/2 + offset) (boardBottom + offset) $
-                Scale 0.12 0.12 $ Color lblColor $ Text [fileChar f]
+                Color lblColor $ boldText 0.3 [fileChar f]
                | f <- [0..7]]
 
     rankLbls = [Translate (-edgeX + offset) (toScreenY r + squareSize/2 - 15) $
-                Scale 0.12 0.12 $ Color lblColor $ Text (show (r + 1))
+                Color lblColor $ boldText 0.3 (show (r + 1))
                | r <- [0..7]]
 
     fileChar f = toEnum (fromEnum 'a' + f)
@@ -204,7 +223,7 @@ drawHighlights state = case selectedPos state of
 
 -- Рисует окно окончания игры
 drawGameOver :: GameState -> Picture
-drawGameOver state
+drawGameOver  state
     | isCheckmate state = drawMessage (winnerMessage ++ " Wins! (Mate)")
     | isDraw state = drawMessage "Draw!"
     | otherwise = Blank
@@ -218,11 +237,17 @@ drawGameOver state
         [ -- Полупрозрачный фон поверх всей доски
           Graphics.Gloss.Color (makeColorI 0 0 0 150) $ Polygon [(-w, -h), (w, -h), (w, h), (-w, h)]
           -- Основной текст результата
-        , Translate (-150) 40 $ Scale 0.3 0.3 $ Graphics.Gloss.Color white $ Text msg
+        , Translate (-150) 40 $ Graphics.Gloss.Color white $ boldText 0.8 msg
         -- Подсказка для рестарта
-        , Translate (-120) (-40) $ Scale 0.15 0.15 $ Graphics.Gloss.Color (makeColorI 200 200 200 255) $ Text "Press R to Restart"
+        , Translate (-120) (-40) $ Graphics.Gloss.Color (makeColorI 200 200 200 255) $ boldText 0.4 "Press R to Restart"
         ]
       where
         w = fromIntegral windowWidth / 2
         h = fromIntegral windowHeight / 2
 -- \--
+
+
+-- Эффект жирного шрифта
+boldText :: Float -> String -> Picture
+boldText s str = Scale (s * 0.45) (s * 0.45) $ Pictures 
+    [ Translate dx dy (Text str) | dx <- [-0.5, 0, 0.5], dy <- [-0.5, 0, 0.5] ]

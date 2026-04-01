@@ -25,9 +25,12 @@ fps = 30
 
 -- Шаг по времени
 update :: Float -> GameState -> GameState
-update _ state
-    -- Если сейчас ход бота, делаем ход сразу
-    | isBotTurn state = makeBotMove state
+update dt state
+    -- Если сейчас ход бота, делаем ход после задержки
+    | isBotTurn state = 
+        if botTimer state <= 0
+        then makeBotMove state
+        else state { botTimer = botTimer state - dt }
     | otherwise = state
 
 -- Загружаем спрайты
@@ -59,5 +62,5 @@ loadImages = do
 run :: IO ()
 run = do
     images <- loadImages
-    let draw state = drawGame images state
+    let draw = drawGame images
     play window bgColor fps initGameState draw handleEvent update
