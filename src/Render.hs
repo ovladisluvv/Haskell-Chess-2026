@@ -52,11 +52,9 @@ toScreenY r = fromIntegral r * squareSize - boardSize / 2 + squareSize / 2 - top
 -- \\ --
 
 -- \\-- Главная функция, собирает всю сцену
-
 drawCaptured :: [(Piece, Picture)] -> GameState -> Picture
 drawCaptured imgs state = Pictures [whiteGroup, blackGroup]
   where
-    -- White score: calculate difference in material
     pieceValue pType = case pType of
         Pawn -> 1; Knight -> 3; Bishop -> 3; Rook -> 5; Queen -> 9; King -> 0
         
@@ -77,13 +75,11 @@ drawCaptured imgs state = Pictures [whiteGroup, blackGroup]
     whiteAdvantage = deadBlackVal - deadWhiteVal
     blackAdvantage = deadWhiteVal - deadBlackVal
     
-    -- Draw dead white pieces (captured by black) in the right side of the upper part of the bottom bar
     deadWhitePics = [Translate (-fromIntegral i * 45) 0 $ Scale 0.30 0.30 (renderPiece imgs p) | (i, p) <- zip [0..] sortedWhite]
     whiteGroup = Translate (boardSize/2 - 25) (-boardSize/2 - bottomBarHeight/2 + 20) $ Pictures $ 
                  reverse deadWhitePics ++ 
                  (if blackAdvantage > 0 then [Translate (-10) (-35) $ Color white $ scaledText 0.3 ("+" ++ show blackAdvantage)] else [])
 
-    -- Draw dead black pieces in the left side of the lower part of the bottom bar
     deadBlackPics = [Translate (fromIntegral i * 45) 0 $ Scale 0.30 0.30 (renderPiece imgs p) | (i, p) <- zip [0..] sortedBlack]
     blackGroup = Translate (-boardSize/2 + 25) (-boardSize/2 - bottomBarHeight/2 - 20) $ Pictures $ 
                  reverse deadBlackPics ++ 
@@ -288,6 +284,6 @@ drawGameOver  state
 -- \--
 
 
--- Масштабированный текст (без жирного эффекта)
+-- Масштабированный текст
 scaledText :: Float -> String -> Picture
 scaledText s str = Scale (s * 0.45) (s * 0.45) $ Text str

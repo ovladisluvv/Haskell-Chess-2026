@@ -1,7 +1,6 @@
 module Types where
 
 import Data.Vector (Vector)
-import System.Random (StdGen)
 
 -- Цвет шахматной фигуры: белый или черный
 data Color = White | Black deriving (Show, Eq)
@@ -12,7 +11,7 @@ oppositeColor White = Black
 oppositeColor Black = White
 
 -- Тип шахматной фигуры: пешка, конь, слон, ладья, ферзь или король
-data PieceType = Pawn | Knight | Bishop | Rook | Queen | King deriving (Show, Eq)
+data PieceType = Pawn | Knight | Bishop | Rook | Queen | King deriving (Show, Eq, Ord)
 
 -- Шахматная фигура. Включает тип и цвет
 data Piece = Piece { pieceType :: PieceType, 
@@ -31,7 +30,7 @@ newtype Board = Board (Vector (Maybe Piece)) deriving (Show, Eq)
 data Move = Move { moveFrom :: Pos,
                    moveTo :: Pos,
                    movePromote :: Maybe PieceType -- Nothing, если ход не связан с превращением пешки, Just PieceType - тип фигуры, в которую превращается пешка
-                 } deriving (Show, Eq)
+                 } deriving (Show, Eq, Ord)
 
 -- Права на рокировку для обеих сторон. Каждое поле указывает, разрешена ли соответствующая рокировка
 data CastlingRights = CastlingRights { whiteKingSide :: Bool,
@@ -51,7 +50,6 @@ data GameState = GameState { board :: Board,
                              selectedPos :: Maybe Pos, -- Позиция выбранной фигуры для хода, если есть
                              promotionState :: Maybe (Pos, Pos), -- Координаты (откуда, куда) для отрисовки меню превращения
                              botColor :: Maybe Color, -- Цвет фигуры бота
-                             botGen :: StdGen, -- Генератор случайных чисел для случайных ходов бота
                              menuState :: MenuState, -- Состояние меню выбора режима
                              botTimer :: Float, -- Задержка бота в секундах
                              deadWhite :: [Piece], -- Взятые белые фигуры
