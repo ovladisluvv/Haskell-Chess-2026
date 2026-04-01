@@ -59,24 +59,24 @@ drawGame imgs  state
 drawMenu :: Picture
 drawMenu  = Pictures [
     Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
-    Translate (-180) 100 $ boldText 0.6 "Select Game Mode",
+    Translate (-180) 100 $ scaledText 0.6 "Select Game Mode",
     Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-50) (-10) $ boldText 0.4 "1: PvP",
+    Translate (-50) (-10) $ scaledText 0.4 "1: PvP",
     Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-50) (-90) $ boldText 0.4 "2: PvE"
+    Translate (-50) (-90) $ scaledText 0.4 "2: PvE"
   ]
 
 -- Меню выбора цвета (Выбор цвета игрока против бота)
 drawColorMenu :: Picture
 drawColorMenu  = Pictures [
     Color (makeColorI 30 30 30 200) $ Polygon [(-400, -450), (400, -450), (400, 450), (-400, 450)],
-    Translate (-160) 100 $ boldText 0.6 "Select Your Color",
+    Translate (-160) 100 $ scaledText 0.6 "Select Your Color",
     Translate 0 0 $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-10) $ boldText 0.4 "1: White",
+    Translate (-80) (-10) $ scaledText 0.4 "1: White",
     Translate 0 (-80) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-90) $ boldText 0.4 "2: Black",
+    Translate (-80) (-90) $ scaledText 0.4 "2: Black",
     Translate 0 (-160) $ Color (makeColorI 70 70 70 255) $ Polygon [(-100, -30), (100, -30), (100, 30), (-100, 30)],
-    Translate (-80) (-170) $ boldText 0.4 "3: Back"
+    Translate (-80) (-170) $ scaledText 0.4 "3: Back"
   ]
 
 -- Кнопка отмены хода и выхода
@@ -87,9 +87,9 @@ drawUndoMenuButton  =
         menuX = boardSize / 2 - 180
     in Pictures [
         Translate undoX barY $ Color (makeColorI 80 80 80 255) $ Polygon [(-50, -12), (50, -12), (50, 12), (-50, 12)],
-        Translate (undoX - 45) (barY - 5) $ boldText 0.3 "Undo (Z)",
+        Translate (undoX - 45) (barY - 5) $ scaledText 0.3 "Undo (Z)",
         Translate menuX barY $ Color (makeColorI 80 80 80 255) $ Polygon [(-50, -12), (50, -12), (50, 12), (-50, 12)],
-        Translate (menuX - 45) (barY - 5) $ boldText 0.3 "Menu (M)"
+        Translate (menuX - 45) (barY - 5) $ scaledText 0.3 "Menu (M)"
     ]
 
 formatPos :: Pos -> String
@@ -113,8 +113,8 @@ drawTurnIndicator  state =
         barY = boardSize / 2 -- середина высоты для топ бара (относительно 0), верхняя граница окна: boardSize/2 + topBarHeight/2, низ топбара = boardSize/2 - topBarHeight/2
     in Pictures 
        [ Translate 0 barY $ Color (makeColorI 40 40 40 255) $ Polygon [(-boardSize/2, -topBarHeight/2), (boardSize/2, -topBarHeight/2), (boardSize/2, topBarHeight/2), (-boardSize/2, topBarHeight/2)]
-       , Translate (-boardSize/2 + 20) (barY + 10) $ Color white $ boldText 0.35 barText
-       , Translate (-boardSize/2 + 20) (barY - 15) $ Color (makeColorI 200 200 200 255) $ boldText 0.3 histText
+       , Translate (-boardSize/2 + 20) (barY + 10) $ Color white $ scaledText 0.35 barText
+       , Translate (-boardSize/2 + 20) (barY - 15) $ Color (makeColorI 200 200 200 255) $ scaledText 0.3 histText
        ]
 
 -- Подсветка короля, если он под шахом
@@ -193,11 +193,11 @@ drawLabels  = Pictures (fileLbls ++ rankLbls)
     offset   = 5
 
     fileLbls = [Translate (toScreenX f - squareSize/2 + offset) (boardBottom + offset) $
-                Color lblColor $ boldText 0.3 [fileChar f]
+                Color lblColor $ scaledText 0.3 [fileChar f]
                | f <- [0..7]]
 
     rankLbls = [Translate (-edgeX + offset) (toScreenY r + squareSize/2 - 15) $
-                Color lblColor $ boldText 0.3 (show (r + 1))
+                Color lblColor $ scaledText 0.3 (show (r + 1))
                | r <- [0..7]]
 
     fileChar f = toEnum (fromEnum 'a' + f)
@@ -237,9 +237,9 @@ drawGameOver  state
         [ -- Полупрозрачный фон поверх всей доски
           Graphics.Gloss.Color (makeColorI 0 0 0 150) $ Polygon [(-w, -h), (w, -h), (w, h), (-w, h)]
           -- Основной текст результата
-        , Translate (-150) 40 $ Graphics.Gloss.Color white $ boldText 0.8 msg
+        , Translate (-150) 40 $ Graphics.Gloss.Color white $ scaledText 0.8 msg
         -- Подсказка для рестарта
-        , Translate (-120) (-40) $ Graphics.Gloss.Color (makeColorI 200 200 200 255) $ boldText 0.4 "Press R to Restart"
+        , Translate (-120) (-40) $ Graphics.Gloss.Color (makeColorI 200 200 200 255) $ scaledText 0.4 "Press R to Restart"
         ]
       where
         w = fromIntegral windowWidth / 2
@@ -247,7 +247,6 @@ drawGameOver  state
 -- \--
 
 
--- Эффект жирного шрифта
-boldText :: Float -> String -> Picture
-boldText s str = Scale (s * 0.45) (s * 0.45) $ Pictures 
-    [ Translate dx dy (Text str) | dx <- [-0.5, 0, 0.5], dy <- [-0.5, 0, 0.5] ]
+-- Масштабированный текст (без жирного эффекта)
+scaledText :: Float -> String -> Picture
+scaledText s str = Scale (s * 0.45) (s * 0.45) $ Text str
