@@ -2,7 +2,6 @@ module Board where
 
 import Types
 import qualified Data.Vector as V
-import System.Random (mkStdGen)
 
 -- /--- Библиотека для работы с позицией на шахматной доске
 -- Проверка, находится ли позиция в пределах доски (0-7 для столбца и 0-7 для ряда)
@@ -85,7 +84,6 @@ initGameState = GameState { board = initBoard,
                             selectedPos = Nothing,
                             promotionState = Nothing,
                             botColor = Nothing,
-                            botGen = mkStdGen 67,
                             menuState = MainMenu
                           }
 -- \---
