@@ -55,13 +55,15 @@ data GameState = GameState { board :: Board,
                              menuState :: MenuState -- Состояние меню выбора режима
                            } deriving (Show)
 
+-- Состояние меню выбора режима: главное меню, меню выбора цвета, меню скрыто
 data MenuState = MainMenu | ColorMenu | Hidden deriving (Show, Eq)
 
 -- Переопределение функции сравнения для GameState, поскольку генератор случайных чисел не поддерживает сравнение на равенство
 instance Eq GameState where
   gs1 == gs2 = board gs1 == board gs2 &&
                activePlayer gs1 == activePlayer gs2 &&
-               enPassantTarget gs1 == enPassantTarget gs2
+               enPassantTarget gs1 == enPassantTarget gs2 &&
+               castlingRights gs1 == castlingRights gs2
 
 -- Смещения. Необходимы для ходов Коня и Короля
 data Offsets = Offsets { fileOffset :: Int,

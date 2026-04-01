@@ -200,7 +200,7 @@ isCheckmate gs = null (allLegalMoves gs) && isCheck gs (activePlayer gs)
 
 -- Проверка на ничью
 isDraw :: GameState -> Bool
-isDraw gs = isStalemate gs || isInsufficientMaterial gs || isFiftyMoveRule gs
+isDraw gs = isStalemate gs || isInsufficientMaterial gs || isFiftyMoveRule gs || isRepetition gs
 
 -- Проверка на пат
 isStalemate :: GameState -> Bool
@@ -229,5 +229,17 @@ isInsufficientMaterial gs = case filter notKing allPieces of
 -- Проверка на ничью по правилу 50 ходов
 isFiftyMoveRule :: GameState -> Bool
 isFiftyMoveRule gs = halfMoveCount gs >= 100
-   
+
+-- Вспомогательная функция для проверки на повторение позиций. Рекурсивно отменяет ходы, пока не достигнет начального состояния или состояния с нулевым счетчиком полуходов
+getHistory :: GameState -> [GameState]
+getHistory gs
+    | null (gameStory gs) = [gs]
+    | halfMoveCount gs == 0 = [gs]
+    | otherwise = gs : getHistory (unmakeMove gs)
+
+-- Проверка на ничью по трехкратному повторению позиции
+isRepetition :: GameState -> Bool
+isRepetition gs = length (filter isSamePos (getHistory gs)) >= 3
+    where
+        isSamePos curState = curState == gs
 -- \---
