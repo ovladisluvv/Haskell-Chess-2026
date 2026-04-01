@@ -16,13 +16,15 @@ pawnPushDir White = 1
 pawnPushDir Black = -1
 
 -- Применение хода к состоянию игры
+makeMove :: GameState -> Move -> GameState
 makeMove gs move = gs { board = finalBoard,
                          activePlayer = oppositeColor (activePlayer gs),
                          moveNumber = moveNumber gs + turnInc (activePlayer gs),
                          halfMoveCount = updatedHalfMoveCount,
                          enPassantTarget = newEnPassantTarget,
                          castlingRights = updatedCastlingRights,
-                         gameStory = gameStory gs ++ [newMoveRecord]
+                         gameStory = gameStory gs ++ [newMoveRecord],
+                         botTimer = 0.5
                        }
     where
         movedBoard
@@ -32,6 +34,7 @@ makeMove gs move = gs { board = finalBoard,
         (rookFrom, rookTo) = case file (moveTo move) of
             6 -> (Pos 7 (rank (moveTo move)), Pos 5 (rank (moveTo move))) -- Короткая рокировка
             2 -> (Pos 0 (rank (moveTo move)), Pos 3 (rank (moveTo move))) -- Длинная рокировка
+            _ -> (Pos 0 0, Pos 0 0) -- Недостижимо, если это рокировка
 
         boardAfterEp
             | isPawnMove && Just (moveTo move) == enPassantTarget gs = setPiece movedBoard enPassantedPawnPos Nothing
@@ -98,7 +101,8 @@ unmakeMove gs
                        halfMoveCount = prevHalfMoveCount toUndo,
                        enPassantTarget = prevEnPassantTarget toUndo,
                        castlingRights = prevCastlingRights toUndo,
-                       gameStory = take (length (gameStory gs) - 1) (gameStory gs)
+                       gameStory = take (length (gameStory gs) - 1) (gameStory gs),
+                       botTimer = 0.5
                      }
     where
         prevPlayerColor = oppositeColor (activePlayer gs)
@@ -169,7 +173,9 @@ isSquareAttacked gs targetPos color = targetPos `elem` (map moveTo opponentMoves
 
 -- Поиск короля заданного цвета на доске. Проходит по всем позициям и возвращает позицию, на которой находится король
 findKing :: Board -> Color -> Pos
-findKing b color = head (filter isKing [Pos f r | f <- [0..7], r <- [0..7]])
+findKing b color = case filter isKing [Pos f r | f <- [0..7], r <- [0..7]] of
+    (p:_) -> p
+    []    -> Pos 4 0 -- Fallback, чтобы не было partial head
     where
         isKing piecePos = case getPiece b piecePos of
             Just (Piece King pColor) -> pColor == color

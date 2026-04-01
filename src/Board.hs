@@ -72,6 +72,7 @@ initBoard = Board (V.generate 64 initSquare)
         backRank 5 = Bishop
         backRank 6 = Knight
         backRank 7 = Rook
+        backRank _ = Pawn -- Недостижимо
 
 -- Инициализация состояния игры
 initGameState :: GameState
@@ -86,6 +87,7 @@ initGameState = GameState { board = initBoard,
                             promotionState = Nothing,
                             botColor = Nothing,
                             botGen = mkStdGen 67,
-                            menuState = MainMenu
+                            menuState = MainMenu,
+                            botTimer = 0.5
                           }
 -- \---

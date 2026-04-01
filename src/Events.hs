@@ -17,24 +17,37 @@ screenToBoard (x, y) = Pos f r
     r = floor ((y + fromIntegral windowHeight / 2) / squareSize)
 
 -- Обработка событий экрана
+resetGame :: GameState -> GameState
+resetGame gs = initGameState { menuState = menuState gs, botColor = botColor gs }
+
+smartUndo :: GameState -> GameState
+smartUndo gs = unmakeMove gs
+
 handleEvent :: Event -> GameState -> GameState
 -- Перезапуск игры по нажатию клавиши R или К (русская)
-handleEvent (EventKey (Char 'r') Down _ _) _ = initGameState
-handleEvent (EventKey (Char 'R') Down _ _) _ = initGameState
-handleEvent (EventKey (Char 'к') Down _ _) _ = initGameState
-handleEvent (EventKey (Char 'К') Down _ _) _ = initGameState
+handleEvent (EventKey (Char 'r') Down _ _) gs | menuState gs == Hidden = resetGame gs
+handleEvent (EventKey (Char 'R') Down _ _) gs | menuState gs == Hidden = resetGame gs
+handleEvent (EventKey (Char 'к') Down _ _) gs | menuState gs == Hidden = resetGame gs
+handleEvent (EventKey (Char 'К') Down _ _) gs | menuState gs == Hidden = resetGame gs
+
+-- Выход в главное меню по нажатию M или Ь (русская)
+handleEvent (EventKey (Char 'm') Down _ _) gs | menuState gs == Hidden = initGameState
+handleEvent (EventKey (Char 'M') Down _ _) gs | menuState gs == Hidden = initGameState
+handleEvent (EventKey (Char 'ь') Down _ _) gs | menuState gs == Hidden = initGameState
+handleEvent (EventKey (Char 'Ь') Down _ _) gs | menuState gs == Hidden = initGameState
 
 -- Кнопка возврата хода по нажатию клавиши Z или Я (русская)
-handleEvent (EventKey (Char 'z') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
-handleEvent (EventKey (Char 'Z') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
-handleEvent (EventKey (Char 'я') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
-handleEvent (EventKey (Char 'Я') Down _ _) gs | menuState gs == Hidden = unmakeMove gs
+handleEvent (EventKey (Char 'z') Down _ _) gs | menuState gs == Hidden = smartUndo gs
+handleEvent (EventKey (Char 'Z') Down _ _) gs | menuState gs == Hidden = smartUndo gs
+handleEvent (EventKey (Char 'я') Down _ _) gs | menuState gs == Hidden = smartUndo gs
+handleEvent (EventKey (Char 'Я') Down _ _) gs | menuState gs == Hidden = smartUndo gs
 
 -- Выбор режима игры
 handleEvent (EventKey (Char '1') Down _ _) gs | menuState gs == MainMenu = gs { menuState = Hidden, botColor = Nothing }
 handleEvent (EventKey (Char '2') Down _ _) gs | menuState gs == MainMenu = gs { menuState = ColorMenu }
 handleEvent (EventKey (Char '1') Down _ _) gs | menuState gs == ColorMenu = gs { menuState = Hidden, botColor = Just Black }
 handleEvent (EventKey (Char '2') Down _ _) gs | menuState gs == ColorMenu = gs { menuState = Hidden, botColor = Just White }
+handleEvent (EventKey (Char '3') Down _ _) gs | menuState gs == ColorMenu = gs { menuState = MainMenu }
 
 -- Клик мыши работает только если игра продолжается
 handleEvent (EventKey (MouseButton LeftButton) Down _ (x, y)) gs 
@@ -45,10 +58,13 @@ handleEvent (EventKey (MouseButton LeftButton) Down _ (x, y)) gs
     | menuState gs == ColorMenu =
         if x >= -100 && x <= 100 && y >= -30 && y <= 30 then gs { menuState = Hidden, botColor = Just Black }
         else if x >= -100 && x <= 100 && y >= -110 && y <= -50 then gs { menuState = Hidden, botColor = Just White }
+        else if x >= -100 && x <= 100 && y >= -190 && y <= -130 then gs { menuState = MainMenu }
         else gs
     | otherwise = 
-        let undoBox = x >= 290 && x <= 390 && y >= 385 && y <= 415
-        in if undoBox then unmakeMove gs
+        let undoBox = x >= 280 && x <= 400 && y >= 390 && y <= 430
+            menuBox = x >= 160 && x <= 280 && y >= 390 && y <= 430
+        in if undoBox then smartUndo gs
+           else if menuBox then initGameState
            else if not (isCheckmate gs || isDraw gs) then
                let pos = screenToBoard (x, y)
                in case promotionState gs of

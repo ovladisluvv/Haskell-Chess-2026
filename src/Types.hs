@@ -52,7 +52,8 @@ data GameState = GameState { board :: Board,
                              promotionState :: Maybe (Pos, Pos), -- Координаты (откуда, куда) для отрисовки меню превращения
                              botColor :: Maybe Color, -- Цвет фигуры бота
                              botGen :: StdGen, -- Генератор случайных чисел для случайных ходов бота
-                             menuState :: MenuState -- Состояние меню выбора режима
+                             menuState :: MenuState, -- Состояние меню выбора режима
+                             botTimer :: Float -- Задержка бота в секундах
                            } deriving (Show)
 
 -- Состояние меню выбора режима: главное меню, меню выбора цвета, меню скрыто
