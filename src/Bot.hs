@@ -9,12 +9,12 @@ import qualified Data.Vector as V
 -- /--- Библиотека для логики бота (Minimax)
 -- Функция для получения материальной ценности фигуры
 getMaterialValue :: PieceType -> Int
-getMaterialValue Pawn = 10
-getMaterialValue Knight = 30
-getMaterialValue Bishop = 30
-getMaterialValue Rook = 50
-getMaterialValue Queen = 90
-getMaterialValue King = 9000
+getMaterialValue Pawn = 100
+getMaterialValue Knight = 310
+getMaterialValue Bishop = 340
+getMaterialValue Rook = 500
+getMaterialValue Queen = 900
+getMaterialValue King = 20000
 
 -- Функция для получения позиционной ценности фигуры на доске
 getPosValue :: PieceType -> Color -> Pos -> Int
@@ -34,7 +34,7 @@ getTable King = kingTable
 pawnTable :: V.Vector Int
 pawnTable = V.fromList 
     [ 0,  0,  0,  0,  0,  0,  0,  0,
-     50, 50, 50, 50, 50, 50, 50, 50,
+     40, 40, 40, 40, 40, 40, 40, 40,
      10, 10, 20, 30, 30, 20, 10, 10,
       5,  5, 10, 25, 25, 10,  5,  5,
       0,  0,  0, 20, 20,  0,  0,  0,
