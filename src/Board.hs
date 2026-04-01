@@ -71,7 +71,7 @@ initBoard = Board (V.generate 64 initSquare)
         backRank 5 = Bishop
         backRank 6 = Knight
         backRank 7 = Rook
-        backRank _ = Pawn -- Недостижимо
+        backRank _ = Pawn 
 
 -- Инициализация состояния игры
 initGameState :: GameState

@@ -14,8 +14,6 @@ screenToBoard :: (Float, Float) -> Pos
 screenToBoard (x, y) = Pos f r
   where
     f = floor ((x + fromIntegral windowWidth / 2) / squareSize)
-    -- Мы вычитаем смещение доски по вертикали. Поскольку окно теперь больше доски,
-    -- boardSize совпадает с windowWidth, и доска центрирована по Y.
     r = floor ((y + fromIntegral windowWidth / 2) / squareSize)
 
 -- Обработка событий экрана
@@ -23,7 +21,12 @@ resetGame :: GameState -> GameState
 resetGame gs = initGameState { menuState = menuState gs, botColor = botColor gs }
 
 smartUndo :: GameState -> GameState
-smartUndo gs = unmakeMove gs
+smartUndo gs = case botColor gs of
+    Nothing -> unmakeMove gs
+    Just bc -> 
+        if activePlayer gs == bc
+        then unmakeMove gs 
+        else unmakeMove (unmakeMove gs) 
 
 handleEvent :: Event -> GameState -> GameState
 -- Перезапуск игры по нажатию клавиши R или К (русская)
