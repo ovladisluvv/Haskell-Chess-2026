@@ -20,10 +20,11 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/ovladisluvv/Haskell-Chess-2026#readme>
 
 dependencies:
-- base >= 4.19.0.0 && < 5
-- vector
-- gloss
-- random
+  - base >= 4.19.0.0 && < 5
+  - vector
+  - gloss
+  - directory
+  - filepath
 
 ghc-options:
 - -Wall
