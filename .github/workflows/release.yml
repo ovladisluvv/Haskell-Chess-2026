@@ -183,13 +183,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download all workflow artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./dist
-
-      - name: Show downloaded files
-        run: find ./dist -maxdepth 3 -type f
 
       - name: Create release if missing
         env:
@@ -197,9 +197,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           gh release view "$TAG" >/dev/null 2>&1 || \
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --generate-notes
+          gh release create "$TAG" --title "$TAG" --generate-notes
 
       - name: Upload labeled assets
         env:
@@ -221,4 +219,4 @@ jobs:
 
           gh release upload "$TAG" \
             dist/macos-intel-release/haskell-chess-${TAG}-macos-intel.tar.gz#macOS\ \(Intel,\ x64\) \
-            --clobberd
+            --clobber
