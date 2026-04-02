@@ -17,18 +17,37 @@ getMaterialValue Queen = 900
 getMaterialValue King = 20000
 
 -- Функция для получения позиционной ценности фигуры на доске
-getPosValue :: PieceType -> Color -> Pos -> Int
-getPosValue pieceType White (Pos f r) = getTable pieceType V.! ((7 - r) * 8 + f)
-getPosValue pieceType Black (Pos f r) = getTable pieceType V.! (r * 8 + f)
+getPosValue :: GameState -> PieceType -> Color -> Pos -> Int
+getPosValue gs pieceType White (Pos f r) = getTable gs pieceType V.! ((7 - r) * 8 + f)
+getPosValue gs pieceType Black (Pos f r) = getTable gs pieceType V.! (r * 8 + f)
 
 -- Генерация таблицы с позиционной ценностью для каждой фигуры
-getTable :: PieceType -> V.Vector Int
-getTable Pawn = pawnTable
-getTable Knight = knightTable
-getTable Bishop = bishopTable
-getTable Rook = rookTable
-getTable Queen = queenTable
-getTable King = kingTable
+getTable :: GameState -> PieceType -> V.Vector Int
+getTable _ Pawn = pawnTable
+getTable _ Knight = knightTable
+getTable _ Bishop = bishopTable
+getTable _ Rook = rookTable
+getTable _ Queen = queenTable
+getTable gs King 
+    | isEndgame gs = kingEndgameTable
+    | otherwise = kingMiddlegameTable
+
+-- Вспомогательная функция для определения, находится ли позиция в эндшпиле. Эндшпиль наступает, когда суммарная материальная ценность всех фигур, кроме пешек и королей, на доске меньше или равна 2600 (примерно 2 ладьи и 1 слон/конь на игрока)
+isEndgame :: GameState -> Bool
+isEndgame gs = totalNonPawnMaterial <= 2600
+    where
+        totalNonPawnMaterial = sum (map nonPawnValue allPieces)
+
+        allPieces = concatMap getPosAndPieces [Pos f r | f <- [0..7], r <- [0..7]]
+
+        getPosAndPieces pos = case getPiece (board gs) pos of
+            Just piece -> [(pos, piece)]
+            Nothing -> []
+
+        nonPawnValue (pos, Piece pieceType _)
+            | pieceType == Pawn = 0
+            | pieceType == King = 0
+            | otherwise = getMaterialValue pieceType
 
 -- Таблица позиционной ценности для пешки
 pawnTable :: V.Vector Int
@@ -95,9 +114,9 @@ queenTable = V.fromList
      -20,-10,-10, -5, -5,-10,-10,-20
     ]
 
--- Таблица позиционной ценности для короля
-kingTable :: V.Vector Int
-kingTable = V.fromList
+-- Таблица позиционной ценности для короля в дебюте и миттельшпиле (стремится оставаться у начальной позиции)
+kingMiddlegameTable :: V.Vector Int
+kingMiddlegameTable = V.fromList
     [-30,-40,-40,-50,-50,-40,-40,-30,
      -30,-40,-40,-50,-50,-40,-40,-30,
      -30,-40,-40,-50,-50,-40,-40,-30,
@@ -106,6 +125,19 @@ kingTable = V.fromList
      -10,-20,-20,-20,-20,-20,-20,-10,
       20, 20,  0,  0,  0,  0, 20, 20,
       20, 30, 10,  0,  0, 10, 30, 20
+    ]
+
+-- Таблица позиционной ценности для короля в эндшпиле (стремится к центру)
+kingEndgameTable :: V.Vector Int
+kingEndgameTable = V.fromList
+    [-50,-40,-30,-20,-20,-30,-40,-50,
+     -30,-20,-10,  0,  0,-10,-20,-30,
+     -30,-10, 20, 30, 30, 20,-10,-30,
+     -30,-10, 30, 40, 40, 30,-10,-30,
+     -30,-10, 30, 40, 40, 30,-10,-30,
+     -30,-10, 20, 30, 30, 20,-10,-30,
+     -30,-30,  0,  0,  0,  0,-30,-30,
+     -50,-30,-30,-30,-30,-30,-30,-50
     ]
 
 -- Вспомогательная функция для расчета оценки позиции. Возвращает число > 0 в пользу белых, < 0 в пользу черных
@@ -120,8 +152,8 @@ evaluatePosition gs = baseScore + mobilityScore
             Just piece -> [(pos, piece)]
             Nothing -> []
 
-        pieceValue (pos, Piece pieceType White) = getMaterialValue pieceType + getPosValue pieceType White pos
-        pieceValue (pos, Piece pieceType Black) = -(getMaterialValue pieceType + getPosValue pieceType Black pos)
+        pieceValue (pos, Piece pieceType White) = getMaterialValue pieceType + getPosValue gs pieceType White pos
+        pieceValue (pos, Piece pieceType Black) = -(getMaterialValue pieceType + getPosValue gs pieceType Black pos)
 
         mobilityScore = (length allWhiteMoves - length allBlackMoves) * 4
 
