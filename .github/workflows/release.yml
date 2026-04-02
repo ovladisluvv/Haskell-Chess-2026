@@ -1,4 +1,4 @@
-name: Build and Release Windows
+name: Build and Release
 
 on:
   push:
@@ -22,12 +22,6 @@ jobs:
           enable-stack: true
           stack-version: latest
 
-      - name: Show tool versions
-        shell: powershell
-        run: |
-          stack --version
-          ghc --version
-
       - name: Build executable
         shell: powershell
         run: |
@@ -43,11 +37,6 @@ jobs:
       - name: Copy runtime DLLs if present
         shell: powershell
         run: |
-          $exe = Get-ChildItem .\release\*.exe | Select-Object -First 1
-          if (-not $exe) {
-            throw "Executable was not found in .\release"
-          }
-
           $ghcDir = Split-Path (Get-Command ghc).Source -Parent
           $mingwBin = Join-Path $ghcDir "..\..\mingw\bin"
           $mingwBin = [System.IO.Path]::GetFullPath($mingwBin)
@@ -58,7 +47,7 @@ jobs:
             }
           }
 
-      - name: Create zip archive
+      - name: Pack Windows release
         shell: powershell
         run: |
           $tag = "${{ github.ref_name }}"
@@ -66,18 +55,11 @@ jobs:
           if (Test-Path $archive) { Remove-Item $archive -Force }
           Compress-Archive -Path .\release\* -DestinationPath $archive
 
-      - name: Upload workflow artifact
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: haskell-chess-windows
-          path: haskell-chess-*.zip
-
-      - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: haskell-chess-*.zip
-          generateReleaseNotes: true
-          allowUpdates: true
+          name: windows-release
+          path: haskell-chess-*-windows.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -86,13 +68,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system dependencies (OpenGL)
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libgl1-mesa-dev \
-            libglu1-mesa-dev
-          sudo apt-get install -y libglfw3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+            libglu1-mesa-dev \
+            libglfw3-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev \
+            libxi-dev
 
       - name: Set up Haskell
         uses: haskell-actions/setup@v2
@@ -104,6 +90,23 @@ jobs:
         run: |
           stack setup
           stack build --copy-bins --local-bin-path ./release
+
+      - name: Copy assets
+        run: |
+          mkdir -p ./release/assets
+          cp -r ./assets/pieces ./release/assets/
+
+      - name: Pack Linux release
+        run: |
+          chmod +x ./release/chess-exe || true
+          TAG="${GITHUB_REF_NAME}"
+          tar -czf "haskell-chess-${TAG}-linux.tar.gz" -C ./release .
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: haskell-chess-*-linux.tar.gz
 
   build-macos-arm64:
     runs-on: macos-latest
@@ -128,11 +131,17 @@ jobs:
           mkdir -p ./release/assets
           cp -r ./assets/pieces ./release/assets/
 
-      - name: Pack macOS release
+      - name: Pack macOS ARM64 release
         run: |
           chmod +x ./release/chess-exe || true
           TAG="${GITHUB_REF_NAME}"
           tar -czf "haskell-chess-${TAG}-macos-arm64.tar.gz" -C ./release .
+
+      - name: Upload macOS ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-release
+          path: haskell-chess-*-macos-arm64.tar.gz
 
   build-macos-intel:
     runs-on: macos-15-intel
@@ -146,11 +155,6 @@ jobs:
         with:
           enable-stack: true
           stack-version: latest
-
-      - name: Show tool versions
-        run: |
-          stack --version
-          ghc --version
 
       - name: Build executable
         run: |
@@ -174,13 +178,12 @@ jobs:
           name: macos-intel-release
           path: haskell-chess-*-macos-intel.tar.gz
 
-
   publish:
     needs: [build-windows, build-linux, build-macos-arm64, build-macos-intel]
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download all build artifacts
+      - name: Download all workflow artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./dist
@@ -188,9 +191,34 @@ jobs:
       - name: Show downloaded files
         run: find ./dist -maxdepth 3 -type f
 
-      - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "dist/**/*.zip,dist/**/*.tar.gz"
-          allowUpdates: true
-          generateReleaseNotes: true
+      - name: Create release if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          gh release view "$TAG" >/dev/null 2>&1 || \
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes
+
+      - name: Upload labeled assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+
+          gh release upload "$TAG" \
+            dist/windows-release/haskell-chess-${TAG}-windows.zip#Windows\ \(x64\) \
+            --clobber
+
+          gh release upload "$TAG" \
+            dist/linux-release/haskell-chess-${TAG}-linux.tar.gz#Linux\ \(x64\) \
+            --clobber
+
+          gh release upload "$TAG" \
+            dist/macos-arm64-release/haskell-chess-${TAG}-macos-arm64.tar.gz#macOS\ \(Apple\ Silicon,\ arm64\) \
+            --clobber
+
+          gh release upload "$TAG" \
+            dist/macos-intel-release/haskell-chess-${TAG}-macos-intel.tar.gz#macOS\ \(Intel,\ x64\) \
+            --clobberd
