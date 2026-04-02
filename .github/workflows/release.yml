@@ -86,6 +86,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install system dependencies (OpenGL)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev
+          sudo apt-get install -y libglfw3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+
       - name: Set up Haskell
         uses: haskell-actions/setup@v2
         with:
@@ -96,42 +104,6 @@ jobs:
         run: |
           stack setup
           stack build --copy-bins --local-bin-path ./release
-
-      - name: Copy assets
-        run: |
-          mkdir -p ./release/assets
-          cp -r ./assets/pieces ./release/assets/
-
-      - name: Pack Linux release
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          tar -czf "haskell-chess-${TAG}-linux.tar.gz" -C ./release .
-
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-release
-          path: haskell-chess-*-linux.tar.gz
-
-  publish:
-    needs: [build-windows, build-linux]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./dist
-
-      - name: Show downloaded files
-        run: find ./dist -maxdepth 3 -type f
-
-      - name: Create GitHub Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "dist/**/*.zip,dist/**/*.tar.gz"
-          allowUpdates: true
-          generateReleaseNotes: true
 
   build-macos-arm64:
     runs-on: macos-latest
@@ -201,3 +173,24 @@ jobs:
         with:
           name: macos-intel-release
           path: haskell-chess-*-macos-intel.tar.gz
+
+
+  publish:
+    needs: [build-windows, build-linux, build-macos-arm64, build-macos-intel]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Show downloaded files
+        run: find ./dist -maxdepth 3 -type f
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/**/*.zip,dist/**/*.tar.gz"
+          allowUpdates: true
+          generateReleaseNotes: true
