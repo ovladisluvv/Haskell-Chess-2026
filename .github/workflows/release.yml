@@ -78,3 +78,126 @@ jobs:
           artifacts: haskell-chess-*.zip
           generateReleaseNotes: true
           allowUpdates: true
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: latest
+
+      - name: Build executable
+        run: |
+          stack setup
+          stack build --copy-bins --local-bin-path ./release
+
+      - name: Copy assets
+        run: |
+          mkdir -p ./release/assets
+          cp -r ./assets/pieces ./release/assets/
+
+      - name: Pack Linux release
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          tar -czf "haskell-chess-${TAG}-linux.tar.gz" -C ./release .
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release
+          path: haskell-chess-*-linux.tar.gz
+
+  publish:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Show downloaded files
+        run: find ./dist -maxdepth 3 -type f
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/**/*.zip,dist/**/*.tar.gz"
+          allowUpdates: true
+          generateReleaseNotes: true
+
+  build-macos-arm64:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: latest
+
+      - name: Build executable
+        run: |
+          stack setup
+          stack build --copy-bins --local-bin-path ./release
+
+      - name: Copy assets
+        run: |
+          mkdir -p ./release/assets
+          cp -r ./assets/pieces ./release/assets/
+
+      - name: Pack macOS release
+        run: |
+          chmod +x ./release/chess-exe || true
+          TAG="${GITHUB_REF_NAME}"
+          tar -czf "haskell-chess-${TAG}-macos-arm64.tar.gz" -C ./release .
+
+  build-macos-intel:
+    runs-on: macos-15-intel
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+          stack-version: latest
+
+      - name: Show tool versions
+        run: |
+          stack --version
+          ghc --version
+
+      - name: Build executable
+        run: |
+          stack setup
+          stack build --copy-bins --local-bin-path ./release
+
+      - name: Copy assets
+        run: |
+          mkdir -p ./release/assets
+          cp -r ./assets/pieces ./release/assets/
+
+      - name: Pack macOS Intel release
+        run: |
+          chmod +x ./release/chess-exe || true
+          TAG="${GITHUB_REF_NAME}"
+          tar -czf "haskell-chess-${TAG}-macos-intel.tar.gz" -C ./release .
+
+      - name: Upload macOS Intel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-intel-release
+          path: haskell-chess-*-macos-intel.tar.gz
