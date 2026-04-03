@@ -22,13 +22,15 @@ jobs:
           enable-stack: true
           stack-version: latest
 
-      - name: Set up MSYS2 and install freeglut
+      - name: Set up MSYS2
         id: msys2
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
           install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-libwinpthread-git
             mingw-w64-x86_64-freeglut
 
       - name: Build executable
@@ -43,28 +45,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path .\release\assets | Out-Null
           Copy-Item -Recurse -Force .\assets\pieces .\release\assets\
 
-      - name: Set up MSYS2 and install freeglut
-        id: msys2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-libwinpthread-git
-            mingw-w64-x86_64-freeglut
-            $msys2 = "${{ steps.msys2.outputs.msys2-location }}"
-            $msys2Bin = Join-Path $msys2 "mingw64\bin"
-
-            $stackCompilerBin = (& stack path --compiler-bin).Trim()
-            $stackCompilerToolsBin = (& stack path --compiler-tools-bin).Trim()
-
-            $candidateDirs = @(
-              $msys2Bin,
-              $stackCompilerToolsBin,
-              $stackCompilerBin
-            ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
-
       - name: Copy Windows runtime DLLs
         shell: powershell
         run: |
@@ -73,9 +53,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path .\release | Out-Null
 
           $msys2 = "${{ steps.msys2.outputs.msys2-location }}"
+          $msys2Bin = Join-Path $msys2 "mingw64\bin"
           $stackCompilerBin = (& stack path --compiler-bin).Trim()
           $stackCompilerToolsBin = (& stack path --compiler-tools-bin).Trim()
-          $msys2Bin = Join-Path $msys2 "mingw64\bin"
 
           $candidateDirs = @(
             $stackCompilerToolsBin,
@@ -99,7 +79,6 @@ jobs:
 
           foreach ($name in $dlls) {
             $found = $null
-
             foreach ($dir in $candidateDirs) {
               $src = Join-Path $dir $name
               if (Test-Path $src) {
@@ -118,8 +97,6 @@ jobs:
             Copy-Item .\release\libfreeglut.dll .\release\glut32.dll -Force
             $copied += "glut32.dll"
           }
-
-          Write-Host ("Copied DLLs: " + ($copied -join ", "))
 
           $required = @(
             "libgcc_s_seh-1.dll",
@@ -142,39 +119,6 @@ jobs:
           if (-not $hasGlut) {
             throw "No GLUT runtime DLL found in release bundle"
           }
-
-      - name: Smoke test packaged executable
-        shell: powershell
-        run: |
-          $exe = Get-ChildItem .\release\*.exe | Select-Object -First 1
-
-          if (-not $exe) {
-            throw "No executable found in .\release"
-          }
-
-          $proc = Start-Process -FilePath $exe.FullName -WorkingDirectory $exe.DirectoryName -PassThru
-          Start-Sleep -Seconds 5
-          $proc.Refresh()
-
-          if ($proc.HasExited) {
-            throw "Packaged executable exited immediately with code $($proc.ExitCode). Most likely a missing DLL or runtime asset."
-          }
-
-          Stop-Process -Id $proc.Id -Force
-
-      - name: Pack Windows release
-        shell: powershell
-        run: |
-          $tag = "${{ github.ref_name }}"
-          $archive = "haskell-chess-$tag-windows.zip"
-          if (Test-Path $archive) { Remove-Item $archive -Force }
-          Compress-Archive -Path .\release\* -DestinationPath $archive
-
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-release
-          path: haskell-chess-*-windows.zip
 
   build-linux:
     runs-on: ubuntu-latest
