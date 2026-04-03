@@ -120,6 +120,31 @@ jobs:
             throw "No GLUT runtime DLL found in release bundle"
           }
 
+      - name: Pack Windows release
+        shell: powershell
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $archive = "haskell-chess-$tag-windows.zip"
+
+          if (Test-Path $archive) {
+            Remove-Item $archive -Force
+          }
+
+          Compress-Archive -Path .\release\* -DestinationPath $archive
+
+          if (-not (Test-Path $archive)) {
+            throw "Windows archive was not created: $archive"
+          }
+
+          Get-ChildItem .
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: haskell-chess-${{ github.ref_name }}-windows.zip
+          if-no-files-found: error
+
   build-linux:
     runs-on: ubuntu-latest
 
@@ -257,6 +282,9 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           gh release view "$TAG" >/dev/null 2>&1 || \
           gh release create "$TAG" --title "$TAG" --generate-notes
+
+      - name: Show downloaded artifacts
+        run: find ./dist -maxdepth 3 -type f | sort
 
       - name: Upload labeled assets
         env:
