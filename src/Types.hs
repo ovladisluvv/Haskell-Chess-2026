@@ -1,6 +1,7 @@
 module Types where
 
 import Data.Vector (Vector)
+import System.Random (StdGen)
 
 -- Цвет шахматной фигуры: белый или черный
 data Color = White | Black deriving (Show, Eq)
@@ -50,6 +51,7 @@ data GameState = GameState { board :: Board,
                              selectedPos :: Maybe Pos, -- Позиция выбранной фигуры для хода, если есть
                              promotionState :: Maybe (Pos, Pos), -- Координаты (откуда, куда) для отрисовки меню превращения
                              botColor :: Maybe Color, -- Цвет фигуры бота
+                             botGen :: StdGen, -- Генератор случайных чисел для бота
                              menuState :: MenuState, -- Состояние меню выбора режима
                              botTimer :: Float, -- Задержка бота в секундах
                              deadWhite :: [Piece], -- Взятые белые фигуры

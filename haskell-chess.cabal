@@ -45,6 +45,7 @@ library
     , directory
     , filepath
     , gloss
+    , random
     , vector
   default-language: Haskell2010
 
@@ -63,6 +64,7 @@ executable chess-exe
     , filepath
     , gloss
     , haskell-chess
+    , random
     , vector
   default-language: Haskell2010
 
@@ -82,5 +84,6 @@ test-suite chess-test
     , filepath
     , gloss
     , haskell-chess
+    , random
     , vector
   default-language: Haskell2010

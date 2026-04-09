@@ -53,7 +53,7 @@ isEndgame gs = totalNonPawnMaterial <= 2600
 pawnTable :: V.Vector Int
 pawnTable = V.fromList 
     [ 0,  0,  0,  0,  0,  0,  0,  0,
-     40, 40, 40, 40, 40, 40, 40, 40,
+     50, 50, 50, 50, 50, 50, 50, 50,
      10, 10, 20, 30, 30, 20, 10, 10,
       5,  5, 10, 25, 25, 10,  5,  5,
       0,  0,  0, 20, 20,  0,  0,  0,
