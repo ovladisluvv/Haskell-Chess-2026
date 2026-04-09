@@ -11,7 +11,7 @@ A fully functional, classic chess game written in Haskell using the `gloss` libr
 </p>
 
 ## Downloads
-Prebuilt binaries are available on the **Releases** page. Current stable version: **v0.1.3**
+Prebuilt binaries are available on the **Releases** page. Current stable version: **v0.1.4**
 
 ## Features
 The game fully complies with the standard chess rules. Here is what you can do:
@@ -62,8 +62,8 @@ To build and run the project you need:
 
 ### Option 1 - Run the latest release
 1. Download the archive for your platform from **Releases**
-2. Extract it
-3. Run the executable
+2. Extract it completely
+3. Run the executable from the extracted folder
 
 ### Option 2 - Build from source
 1. Clone the repository:
