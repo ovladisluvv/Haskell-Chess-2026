@@ -5,6 +5,7 @@ module Events
 import Graphics.Gloss.Interface.Pure.Game
 import Types
 import Board (isValidPos, getPiece, initGameState)
+import Bot (isBotTurn)
 import Rules (makeMove, allLegalMoves, isCheckmate, isDraw, unmakeMove)
 import Render (windowWidth, windowHeight, squareSize)
 import Data.Maybe (listToMaybe)
@@ -70,6 +71,7 @@ handleEvent (EventKey (MouseButton LeftButton) Down _ (x, y)) gs
             menuBox = x >= 160 && x <= 280 && y >= 445 && y <= 485
         in if undoBox then smartUndo gs
            else if menuBox then initGameState
+           else if isBotTurn gs then gs
            else if not (isCheckmate gs || isDraw gs) then
                let pos = screenToBoard (x, y)
                in case promotionState gs of
